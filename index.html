@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -814,25 +815,27 @@
                 const lines = input.split(/\r?\n/);
                 const rows = [];
                 lines.forEach(line => {
-                    line = line.trim();
-                    if (line === '') return;
-                    const cols = line.split('\t').map(c => c.trim());
-                    const nonEmpty = cols.filter(c => c !== '');
-                    if (nonEmpty.length < 3) return;
-                    const stt = nonEmpty[0];
-                    const rawName = nonEmpty[1];
-                    const value = nonEmpty[2];
-                    const refRange = nonEmpty[3] || '';
-                    const unit = nonEmpty[4] || '';
-                    rows.push({
-                        stt,
-                        rawName,
-                        cleanName: cleanName(rawName),
-                        value,
-                        refRange,
-                        unit
-                    });
-                });
+				line = line.trim();
+				if (line === '') return;
+				const cols = line.split('\t').map(c => c.trim());
+				const nonEmpty = cols.filter(c => c !== '');
+				if (nonEmpty.length < 3) return;
+				const stt = nonEmpty[0];
+				// Bỏ qua dòng tiêu đề nếu stt không phải là số
+				if (!/^\d+$/.test(stt)) return;   // <-- Dòng mới thêm
+				const rawName = nonEmpty[1];
+				const value = nonEmpty[2];
+				const refRange = nonEmpty[3] || '';
+				const unit = nonEmpty[4] || '';
+				rows.push({
+					stt,
+					rawName,
+					cleanName: cleanName(rawName),
+					value,
+					refRange,
+					unit
+				});
+			});
                 currentRows = rows;
                 const hasSpecial = rows.some(r => r.value && SPECIAL_NAMES.includes(r.cleanName));
                 let pairs = [];
