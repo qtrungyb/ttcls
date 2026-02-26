@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -79,7 +78,6 @@
             isolation: isolate;
         }
 
-        /* pattern overlay */
         body::before {
             content: '';
             position: fixed;
@@ -348,7 +346,7 @@
             color: var(--text-primary);
         }
 
-        .copy-btn {
+        .copy-btn, .toggle-unit-btn {
             background: var(--btn-bg);
             border: 1px solid var(--btn-border);
             border-radius: 50px;
@@ -365,7 +363,7 @@
             backdrop-filter: blur(4px);
         }
 
-        .copy-btn:hover {
+        .copy-btn:hover, .toggle-unit-btn:hover {
             background: var(--card-bg);
             border-color: var(--border-focus);
             transform: translateY(-4px) scale(1.02);
@@ -667,6 +665,42 @@
             transition: all 0.3s ease;
         }
 
+        /* Ghi chú hướng dẫn (không icon) */
+        .footer-note {
+            margin-top: 40px;
+            padding: 28px 32px;
+            background: var(--card-bg);
+            border-radius: 40px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 20px 40px -20px var(--shadow-color);
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.7;
+            backdrop-filter: blur(8px);
+        }
+        .footer-note h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: var(--text-secondary);
+        }
+        .footer-note ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .footer-note li {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .footer-note strong {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
         @media (max-width: 700px) {
             .app-header { flex-wrap: wrap; justify-content: center; gap: 10px; }
             .app-header .icon { margin-right: 0; }
@@ -708,7 +742,13 @@
         </div>
         <div class="summary-header">
             <h2><i class="fas fa-clipboard-check"></i> Kết quả tóm tắt</h2>
-            <div class="copy-btn" id="copySummaryBtn"><i class="far fa-copy"></i> Sao chép</div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div class="toggle-unit-btn" id="toggleUnitBtn">
+                    <i class="fas fa-eye-slash" id="unitIcon"></i>
+                    <span id="unitBtnText">Hiện đơn vị</span>
+                </div>
+                <div class="copy-btn" id="copySummaryBtn"><i class="far fa-copy"></i> Sao chép</div>
+            </div>
         </div>
         <div class="summary-card" id="summaryText">Chưa có dữ liệu.</div>
         <div class="stats-row">
@@ -738,7 +778,18 @@
                 </table>
             </div>
         </div>
+
+        <!-- Ghi chú hướng dẫn (không icon) -->
+        <div class="footer-note">
+            <h3>Cải tiến chính</h3>
+            <ul>
+                <li><strong>1. Nhận diện thông minh:</strong>Tự động nhận diện và sàng lọc, tóm tắt các chỉ số cận lâm sàng.</li>
+                <li><strong>2. Đơn vị:</strong>Có nút bật/tắt hiển thị đơn vị của các chỉ số cận lâm sàng . Mặc định là ẩn đơn vị.</li>
+				<li><strong>3. Bật/tắt sáng-tối:</strong>Có nút bật/tắt sáng/tối.</li>
+            </ul>
+        </div>
     </div>
+
     <script>
         (function() {
             const SPECIAL_NAMES = [
@@ -749,6 +800,7 @@
                 "Số lượng bạch cầu",
                 "Tỷ lệ bạch cầu GR"
             ];
+
             function cleanName(rawName) {
                 if (!rawName) return '';
                 let trimmed = rawName.trim().replace(/^["']|["']$/g, '');
@@ -756,6 +808,7 @@
                 if (match) return match[1].trim();
                 return trimmed;
             }
+
             function getStatus(valueStr, rangeStr) {
                 if (!valueStr || !rangeStr) return 'unknown';
                 let val = parseFloat(valueStr.replace(/,/g, '.').replace(/[^\d.-]/g, ''));
@@ -777,7 +830,10 @@
                 }
                 return 'unknown';
             }
+
             let currentRows = [];
+            let showUnit = false; // Mặc định ẩn đơn vị
+
             function renderTable() {
                 const tbody = document.getElementById('tableBody');
                 tbody.innerHTML = '';
@@ -804,6 +860,35 @@
                 const abnormalCount = currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length;
                 document.getElementById('abnormalIndicators').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Bất thường: ${abnormalCount}`;
             }
+
+            function generateSummary(rows, showUnit) {
+                if (!rows.length) return 'Chưa có dữ liệu.';
+                const hasSpecial = rows.some(r => r.value && SPECIAL_NAMES.includes(r.cleanName));
+                let pairs = [];
+                if (hasSpecial) {
+                    rows.forEach(r => {
+                        if (r.value && SPECIAL_NAMES.includes(r.cleanName)) {
+                            let item = `${r.cleanName} ${r.value}`;
+                            if (showUnit && r.unit) item += ` ${r.unit}`;
+                            pairs.push(item);
+                        }
+                    });
+                } else {
+                    rows.forEach(r => {
+                        if (r.value) {
+                            let item = `${r.cleanName} ${r.value}`;
+                            if (showUnit && r.unit) item += ` ${r.unit}`;
+                            pairs.push(item);
+                        }
+                    });
+                }
+                return pairs.join(', ') || 'Không tìm thấy chỉ số nào có giá trị.';
+            }
+
+            function updateSummary() {
+                document.getElementById('summaryText').innerText = generateSummary(currentRows, showUnit);
+            }
+
             function summarize() {
                 const input = document.getElementById('dataInput').value;
                 if (!input.trim()) {
@@ -815,44 +900,32 @@
                 const lines = input.split(/\r?\n/);
                 const rows = [];
                 lines.forEach(line => {
-				line = line.trim();
-				if (line === '') return;
-				const cols = line.split('\t').map(c => c.trim());
-				const nonEmpty = cols.filter(c => c !== '');
-				if (nonEmpty.length < 3) return;
-				const stt = nonEmpty[0];
-				// Bỏ qua dòng tiêu đề nếu stt không phải là số
-				if (!/^\d+$/.test(stt)) return;   // <-- Dòng mới thêm
-				const rawName = nonEmpty[1];
-				const value = nonEmpty[2];
-				const refRange = nonEmpty[3] || '';
-				const unit = nonEmpty[4] || '';
-				rows.push({
-					stt,
-					rawName,
-					cleanName: cleanName(rawName),
-					value,
-					refRange,
-					unit
-				});
-			});
+                    line = line.trim();
+                    if (line === '') return;
+                    const cols = line.split('\t').map(c => c.trim());
+                    const nonEmpty = cols.filter(c => c !== '');
+                    if (nonEmpty.length < 3) return;
+                    const stt = nonEmpty[0];
+                    // Bỏ qua dòng tiêu đề nếu stt không phải là số
+                    if (!/^\d+$/.test(stt)) return;
+                    const rawName = nonEmpty[1];
+                    const value = nonEmpty[2];
+                    const refRange = nonEmpty[3] || '';
+                    const unit = nonEmpty[4] || '';
+                    rows.push({
+                        stt,
+                        rawName,
+                        cleanName: cleanName(rawName),
+                        value,
+                        refRange,
+                        unit
+                    });
+                });
                 currentRows = rows;
-                const hasSpecial = rows.some(r => r.value && SPECIAL_NAMES.includes(r.cleanName));
-                let pairs = [];
-                if (hasSpecial) {
-                    rows.forEach(r => {
-                        if (r.value && SPECIAL_NAMES.includes(r.cleanName)) pairs.push(`${r.cleanName} ${r.value}`);
-                    });
-                } else {
-                    rows.forEach(r => {
-                        if (r.value) pairs.push(`${r.cleanName} ${r.value}`);
-                    });
-                }
-                let summary = pairs.join(', ');
-                if (summary === '') summary = 'Không tìm thấy chỉ số nào có giá trị.';
-                document.getElementById('summaryText').innerText = summary;
+                updateSummary();
                 renderTable();
             }
+
             function showToast(message) {
                 const existingToast = document.querySelector('.toast-message');
                 if (existingToast) existingToast.remove();
@@ -865,9 +938,12 @@
                     setTimeout(() => toast.remove(), 400);
                 }, 2000);
             }
+
+            // Theme toggle
             const themeToggle = document.getElementById('themeToggle');
             const iconTheme = themeToggle.querySelector('i');
             const body = document.body;
+
             function setTheme(isDark) {
                 if (isDark) {
                     body.classList.add('dark-mode');
@@ -878,18 +954,20 @@
                 }
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
             }
+
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'dark') {
                 setTheme(true);
             } else {
                 setTheme(false);
             }
+
             themeToggle.addEventListener('click', () => {
                 const isDark = body.classList.contains('dark-mode');
                 setTheme(!isDark);
             });
 
-            // Xử lý nút Tóm tắt với hiệu ứng loading
+            // Xử lý nút Tóm tắt
             document.getElementById('summarizeBtn').addEventListener('click', function() {
                 const btn = this;
                 btn.disabled = true;
@@ -909,25 +987,51 @@
                 }, 50);
             });
 
+            // Xử lý nút Xóa
             document.getElementById('clearBtn').addEventListener('click', function() {
                 document.getElementById('dataInput').value = '';
                 document.getElementById('summaryText').innerText = 'Chưa có dữ liệu.';
                 currentRows = [];
                 renderTable();
-                document.getElementById('rowCountBadge').innerHTML = '<i class="fas fa-database"></i> 0 dòng';
-                document.getElementById('totalIndicators').innerHTML = '<i class="fas fa-calculator"></i> Tổng chỉ số: 0';
-                document.getElementById('abnormalIndicators').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Bất thường: 0';
                 showToast('Đã xóa toàn bộ dữ liệu');
             });
 
+            // Xử lý nút Sao chép
             document.getElementById('copySummaryBtn').addEventListener('click', function() {
                 const text = document.getElementById('summaryText').innerText;
                 navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép tóm tắt!'));
             });
 
+            // Xử lý nút bật/tắt đơn vị
+            const toggleUnitBtn = document.getElementById('toggleUnitBtn');
+            const unitIcon = document.getElementById('unitIcon');
+            const unitBtnText = document.getElementById('unitBtnText');
+
+            function updateUnitToggleUI() {
+                if (showUnit) {
+                    unitIcon.className = 'fas fa-eye';
+                    unitBtnText.innerText = 'Ẩn đơn vị';
+                } else {
+                    unitIcon.className = 'fas fa-eye-slash';
+                    unitBtnText.innerText = 'Hiện đơn vị';
+                }
+            }
+
+            toggleUnitBtn.addEventListener('click', function() {
+                if (currentRows.length === 0) {
+                    showToast('Không có dữ liệu để hiển thị');
+                    return;
+                }
+                showUnit = !showUnit;
+                updateUnitToggleUI();
+                updateSummary();
+            });
+
+            // Xử lý nút Hiển thị bảng
             const toggleBtn = document.getElementById('toggleTableBtn');
             const tableContainer = document.getElementById('tableContainer');
             const toggleIcon = document.getElementById('toggleIcon');
+
             toggleBtn.addEventListener('click', function() {
                 if (tableContainer.classList.contains('hidden')) {
                     tableContainer.classList.remove('hidden');
@@ -939,6 +1043,9 @@
                     toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
                 }
             });
+
+            // Khởi tạo UI cho nút đơn vị (mặc định ẩn)
+            updateUnitToggleUI();
         })();
     </script>
 </body>
