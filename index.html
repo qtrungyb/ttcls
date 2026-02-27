@@ -145,33 +145,6 @@
             border-color: var(--primary-dark);
         }
 
-        .notice-line {
-            text-align: center;
-            margin: 0 0 28px 0;
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: var(--text-light);
-        }
-
-        body.dark-mode .notice-line {
-            color: var(--text-dark);
-        }
-
-        .blink-link {
-            animation: blink 1.5s infinite;
-            font-weight: 700;
-            text-decoration: underline;
-            text-underline-offset: 4px;
-            color: var(--blink-color);
-            margin-left: 6px;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-
         .input-label {
             display: flex;
             justify-content: space-between;
@@ -446,6 +419,59 @@
             border-color: var(--primary-dark);
         }
 
+        /* Thanh công cụ chọn chỉ số */
+        .selection-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            margin: 20px 0 16px;
+            padding: 10px 0;
+        }
+        .tool-btn {
+            background-color: var(--surface-light);
+            border: 1px solid var(--border-light);
+            border-radius: 40px;
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-light);
+        }
+        .tool-btn:hover {
+            background-color: #e0e7f5;
+            border-color: var(--primary-light);
+        }
+        body.dark-mode .tool-btn {
+            background-color: var(--surface-dark);
+            border-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+        body.dark-mode .tool-btn:hover {
+            background-color: #3e4b6e;
+            border-color: var(--primary-dark);
+        }
+        .selected-count-badge {
+            background-color: var(--primary-light);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        body.dark-mode .selected-count-badge {
+            background-color: var(--primary-dark);
+            color: #0a0e1a;
+        }
+
         .table-container {
             border-radius: 24px;
             background-color: var(--surface-light);
@@ -494,14 +520,14 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14.5px;
-            min-width: 820px;
+            min-width: 900px;
         }
 
         th {
             background-color: #eaf0fa;
             color: var(--text-light);
             font-weight: 600;
-            padding: 18px 16px;
+            padding: 18px 12px;
             text-align: left;
             border-bottom: 2px solid var(--border-light);
             position: sticky;
@@ -519,7 +545,7 @@
         }
 
         td {
-            padding: 16px;
+            padding: 16px 12px;
             border-bottom: 1px solid var(--border-light);
             color: var(--text-light);
         }
@@ -692,6 +718,8 @@
             .summary-card { padding: 20px; }
             .btn { padding: 12px 28px; }
             .stats-badge { padding: 10px 24px; }
+            .selection-toolbar { flex-direction: column; align-items: stretch; }
+            .selected-count-badge { margin-left: 0; justify-content: center; }
         }
 
         @media (max-width: 500px) {
@@ -742,11 +770,21 @@
                 <i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng
             </div>
         </div>
+
+        <!-- Thanh công cụ chọn chỉ số (luôn ẩn khi chưa mở bảng) -->
+        <div id="selectionToolbar" class="selection-toolbar hidden">
+            <button class="tool-btn" id="selectMainBtn"><i class="fas fa-star"></i> Chọn chỉ số chính</button>
+            <button class="tool-btn" id="selectAllBtn"><i class="fas fa-check-double"></i> Chọn tất cả</button>
+            <button class="tool-btn" id="deselectAllBtn"><i class="fas fa-times"></i> Bỏ chọn tất cả</button>
+            <span class="selected-count-badge" id="selectedCountBadge"><i class="fas fa-check-circle"></i> Đã chọn: 0/0</span>
+        </div>
+
         <div id="tableContainer" class="table-container hidden">
             <div class="table-scroll">
                 <table>
                     <thead>
                         <tr>
+                            <th style="width: 50px;">Chọn</th>
                             <th>STT</th>
                             <th>Tên gốc</th>
                             <th>Tên đã tóm tắt</th>
@@ -766,8 +804,9 @@
             <ul>
                 <li><strong>1. Nhận diện thông minh:</strong> Tự động nhận diện và sàng lọc, tóm tắt các chỉ số cận lâm sàng.</li>
                 <li><strong>2. Đơn vị:</strong> Có nút bật/tắt hiển thị đơn vị của các chỉ số cận lâm sàng . Mặc định là ẩn đơn vị.</li>
-                <li><strong>3. Bật/tắt sáng-tối:</strong> Có nút bật/tắt sáng/tối.</li>
-                <li><strong>4. Chuyển trang:</strong> Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank" class="blink-link">VÀO ĐÂY</a></li>
+                <li><strong>3. Bật/tắt sáng/tối:</strong> Có nút bật/tắt sáng/tối.</li>
+                <li><strong>4. Chọn chỉ số linh hoạt:</strong> Có thể tick chọn hoặc bỏ chọn từng chỉ số trong bảng, chỉ những chỉ số được chọn mới xuất hiện trong tóm tắt.</li>
+                <li><strong>5. Chuyển trang:</strong> Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank" class="blink-link">VÀO ĐÂY</a></li>
             </ul>
         </div>
     </div>
@@ -815,18 +854,50 @@
 
             let currentRows = [];
             let showUnit = false;
+            let selectedIndices = [];
+
+            function updateSelectedCount() {
+                const total = currentRows.length;
+                const selected = selectedIndices.length;
+                document.getElementById('selectedCountBadge').innerHTML = `<i class="fas fa-check-circle"></i> Đã chọn: ${selected}/${total}`;
+            }
+
+            function getSelectedRows() {
+                return currentRows.filter((_, idx) => selectedIndices.includes(idx));
+            }
+
+            function updateSummary() {
+                const selectedRows = getSelectedRows();
+                document.getElementById('summaryText').innerText = generateSummary(selectedRows, showUnit);
+            }
+
+            function generateSummary(rows, showUnit) {
+                if (!rows.length) return 'Chưa có dữ liệu.';
+                let pairs = [];
+                rows.forEach(r => {
+                    if (r.value) {
+                        let item = `${r.cleanName} ${r.value}`;
+                        if (showUnit && r.unit) item += ` ${r.unit}`;
+                        pairs.push(item);
+                    }
+                });
+                return pairs.join(', ') || 'Không tìm thấy chỉ số nào có giá trị.';
+            }
 
             function renderTable() {
                 const tbody = document.getElementById('tableBody');
                 tbody.innerHTML = '';
-                currentRows.forEach(row => {
+                currentRows.forEach((row, index) => {
                     const tr = document.createElement('tr');
                     const status = getStatus(row.value, row.refRange);
                     let statusHtml = '';
                     if (status === 'normal') statusHtml = '<span class="status-badge status-normal"><i class="fas fa-check-circle"></i> Bình thường</span>';
                     else if (status === 'abnormal') statusHtml = '<span class="status-badge status-abnormal"><i class="fas fa-exclamation-circle"></i> Bất thường</span>';
                     else statusHtml = '<span class="status-badge status-unknown"><i class="fas fa-question-circle"></i> Không xác định</span>';
+
+                    const checked = selectedIndices.includes(index) ? 'checked' : '';
                     tr.innerHTML = `
+                        <td><input type="checkbox" class="row-select" data-index="${index}" ${checked}></td>
                         <td>${row.stt}</td>
                         <td>${row.rawName}</td>
                         <td>${row.cleanName}</td>
@@ -837,38 +908,61 @@
                     `;
                     tbody.appendChild(tr);
                 });
+
+                document.querySelectorAll('.row-select').forEach(cb => {
+                    cb.addEventListener('change', function(e) {
+                        const idx = parseInt(this.dataset.index);
+                        if (this.checked) {
+                            if (!selectedIndices.includes(idx)) selectedIndices.push(idx);
+                        } else {
+                            selectedIndices = selectedIndices.filter(i => i !== idx);
+                        }
+                        selectedIndices.sort((a,b) => a-b);
+                        updateSelectedCount();
+                        updateSummary();
+                    });
+                });
+
                 document.getElementById('rowCountBadge').innerHTML = `<i class="fas fa-database"></i> ${currentRows.length} dòng`;
                 document.getElementById('totalIndicators').innerHTML = `<i class="fas fa-calculator"></i> Tổng chỉ số: ${currentRows.length}`;
                 const abnormalCount = currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length;
                 document.getElementById('abnormalIndicators').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Bất thường: ${abnormalCount}`;
+
+                updateSelectedCount();
             }
 
-            function generateSummary(rows, showUnit) {
-                if (!rows.length) return 'Chưa có dữ liệu.';
-                const hasSpecial = rows.some(r => r.value && SPECIAL_NAMES.includes(r.cleanName));
-                let pairs = [];
-                if (hasSpecial) {
-                    rows.forEach(r => {
-                        if (r.value && SPECIAL_NAMES.includes(r.cleanName)) {
-                            let item = `${r.cleanName} ${r.value}`;
-                            if (showUnit && r.unit) item += ` ${r.unit}`;
-                            pairs.push(item);
-                        }
-                    });
-                } else {
-                    rows.forEach(r => {
-                        if (r.value) {
-                            let item = `${r.cleanName} ${r.value}`;
-                            if (showUnit && r.unit) item += ` ${r.unit}`;
-                            pairs.push(item);
-                        }
-                    });
-                }
-                return pairs.join(', ') || 'Không tìm thấy chỉ số nào có giá trị.';
+            function selectMainIndices() {
+                const mainIndices = [];
+                currentRows.forEach((row, idx) => {
+                    if (SPECIAL_NAMES.includes(row.cleanName)) {
+                        mainIndices.push(idx);
+                    }
+                });
+                selectedIndices = mainIndices;
+                document.querySelectorAll('.row-select').forEach(cb => {
+                    const idx = parseInt(cb.dataset.index);
+                    cb.checked = selectedIndices.includes(idx);
+                });
+                updateSelectedCount();
+                updateSummary();
             }
 
-            function updateSummary() {
-                document.getElementById('summaryText').innerText = generateSummary(currentRows, showUnit);
+            function selectAll() {
+                selectedIndices = currentRows.map((_, idx) => idx);
+                document.querySelectorAll('.row-select').forEach(cb => {
+                    cb.checked = true;
+                });
+                updateSelectedCount();
+                updateSummary();
+            }
+
+            function deselectAll() {
+                selectedIndices = [];
+                document.querySelectorAll('.row-select').forEach(cb => {
+                    cb.checked = false;
+                });
+                updateSelectedCount();
+                updateSummary();
             }
 
             function summarize() {
@@ -876,7 +970,16 @@
                 if (!input.trim()) {
                     document.getElementById('summaryText').innerText = 'Không có dữ liệu. Vui lòng dán dữ liệu vào ô trên.';
                     currentRows = [];
+                    selectedIndices = [];
                     renderTable();
+                    // Ẩn bảng và toolbar
+                    document.getElementById('tableContainer').classList.add('hidden');
+                    document.getElementById('selectionToolbar').classList.add('hidden');
+                    // Đặt lại nút toggle về trạng thái "Hiển thị bảng"
+                    const toggleBtn = document.getElementById('toggleTableBtn');
+                    const toggleIcon = document.getElementById('toggleIcon');
+                    toggleIcon.className = 'fas fa-chevron-right';
+                    toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
                     return;
                 }
                 const lines = input.split(/\r?\n/);
@@ -903,8 +1006,29 @@
                     });
                 });
                 currentRows = rows;
-                updateSummary();
+
+                // Mặc định chọn các chỉ số chính nếu có, nếu không thì chọn tất cả
+                const mainIndices = [];
+                currentRows.forEach((row, idx) => {
+                    if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx);
+                });
+                if (mainIndices.length > 0) {
+                    selectedIndices = mainIndices;
+                } else {
+                    selectedIndices = currentRows.map((_, idx) => idx);
+                }
+
                 renderTable();
+                updateSummary();
+
+                // Sau khi tóm tắt, luôn ẩn bảng và toolbar (trở về trạng thái ban đầu)
+                document.getElementById('tableContainer').classList.add('hidden');
+                document.getElementById('selectionToolbar').classList.add('hidden');
+                // Đặt lại nút toggle
+                const toggleBtn = document.getElementById('toggleTableBtn');
+                const toggleIcon = document.getElementById('toggleIcon');
+                toggleIcon.className = 'fas fa-chevron-right';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
             }
 
             function showToast(message) {
@@ -920,6 +1044,7 @@
                 }, 2000);
             }
 
+            // ----- Khởi tạo giao diện và sự kiện -----
             const themeToggle = document.getElementById('themeToggle');
             const iconTheme = themeToggle.querySelector('i');
             const body = document.body;
@@ -936,15 +1061,10 @@
             }
 
             const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                setTheme(true);
-            } else {
-                setTheme(false);
-            }
+            setTheme(savedTheme === 'dark');
 
             themeToggle.addEventListener('click', () => {
-                const isDark = body.classList.contains('dark-mode');
-                setTheme(!isDark);
+                setTheme(!body.classList.contains('dark-mode'));
             });
 
             document.getElementById('summarizeBtn').addEventListener('click', function() {
@@ -970,7 +1090,16 @@
                 document.getElementById('dataInput').value = '';
                 document.getElementById('summaryText').innerText = 'Chưa có dữ liệu.';
                 currentRows = [];
+                selectedIndices = [];
                 renderTable();
+                // Ẩn bảng và toolbar
+                document.getElementById('tableContainer').classList.add('hidden');
+                document.getElementById('selectionToolbar').classList.add('hidden');
+                // Đặt lại nút toggle
+                const toggleBtn = document.getElementById('toggleTableBtn');
+                const toggleIcon = document.getElementById('toggleIcon');
+                toggleIcon.className = 'fas fa-chevron-right';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
                 showToast('Đã xóa toàn bộ dữ liệu');
             });
 
@@ -1006,17 +1135,35 @@
             const toggleBtn = document.getElementById('toggleTableBtn');
             const tableContainer = document.getElementById('tableContainer');
             const toggleIcon = document.getElementById('toggleIcon');
+            const selectionToolbar = document.getElementById('selectionToolbar');
 
             toggleBtn.addEventListener('click', function() {
                 if (tableContainer.classList.contains('hidden')) {
+                    // Hiện bảng và toolbar
                     tableContainer.classList.remove('hidden');
+                    selectionToolbar.classList.remove('hidden');
                     toggleIcon.className = 'fas fa-chevron-down';
                     toggleBtn.innerHTML = '<i class="fas fa-chevron-down" id="toggleIcon"></i> Ẩn bảng';
                 } else {
+                    // Ẩn bảng và toolbar
                     tableContainer.classList.add('hidden');
+                    selectionToolbar.classList.add('hidden');
                     toggleIcon.className = 'fas fa-chevron-right';
                     toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
                 }
+            });
+
+            document.getElementById('selectMainBtn').addEventListener('click', function() {
+                if (currentRows.length === 0) return;
+                selectMainIndices();
+            });
+            document.getElementById('selectAllBtn').addEventListener('click', function() {
+                if (currentRows.length === 0) return;
+                selectAll();
+            });
+            document.getElementById('deselectAllBtn').addEventListener('click', function() {
+                if (currentRows.length === 0) return;
+                deselectAll();
             });
 
             updateUnitToggleUI();
