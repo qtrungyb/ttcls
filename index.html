@@ -32,7 +32,6 @@
             --normal-dark: #6fcf97;
             --unknown-light: #6b7a8f;
             --unknown-dark: #9aaec9;
-            --blink-color: #d97706;
         }
 
         body {
@@ -338,6 +337,10 @@
             line-height: 1.8;
             color: var(--text-light);
             border-left: 6px solid var(--primary-light);
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: normal;
+            word-break: break-word;
         }
 
         body.dark-mode .summary-card {
@@ -547,6 +550,7 @@
             padding: 16px 12px;
             border-bottom: 1px solid var(--border-light);
             color: var(--text-light);
+            cursor: pointer;
         }
 
         body.dark-mode td {
@@ -742,7 +746,7 @@
             </div>
             <div class="textarea-wrapper">
                 <i class="fas fa-table"></i>
-                <textarea id="dataInput" placeholder="Ví dụ:&#10;1	(H01) Số lượng hồng cầu	4.60	4 - 5.8	x10^12/lít&#10;2	(H02) Huyết sắc tố	90	140 - 160	g/L&#10;3	(H03) Số lượng tiểu cầu	420	150 - 400	x10^9/L"></textarea>
+                <textarea id="dataInput" placeholder="Ví dụ:&#10;1	(H01) Số lượng hồng cầu	4.60	4 - 5.8	x10^12/lít&#10;2	(H02) Huyết sắc tố	90	140 - 160	g/L&#10;3	(H03) Số lượng tiểu cầu	420	150 - 400	x10^9/L&#10;4	(B04) Glucose	6.5	4.1-5.9	mmol/L"></textarea>
             </div>
             <div class="button-strip">
                 <button class="btn btn-primary" id="summarizeBtn"><i class="fas fa-flask"></i> Tóm tắt</button>
@@ -801,14 +805,16 @@
         <div class="footer-note">
             <h3>Cải tiến mới</h3>
             <ul>
-                <li><strong>1. "Chọn chỉ số bất thường":</strong> Một lần ấn để chọn tất cả chỉ số bất thường trong bảng.</li>
-                <li><strong>2. Chuyển trang:</strong> Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank" class="blink-link">VÀO ĐÂY</a></li>
+				<li><strong>✓ "Chọn chỉ số bất thường"</strong> – Một lần ấn để chọn tất cả chỉ số bất thường trong bảng.</li>	
+                <li><strong>✓ Click vào hàng để chọn hoặc bỏ chọn checkbox</strong> – Thao tác nhanh.</li>
+                <li><strong>✓ Chuyển trang</strong> - Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
             </ul>
         </div>
     </div>
 
     <script>
         (function() {
+            // Danh sách chỉ số chính giữ nguyên như bản gốc (6 chỉ số)
             const SPECIAL_NAMES = [
                 "Số lượng hồng cầu",
                 "Huyết sắc tố",
@@ -827,15 +833,19 @@
 
             function parseNumber(str) {
                 if (!str) return NaN;
-                let cleaned = str.replace(/,/g, '.').replace(/[^\d.-]/g, '');
-                return parseFloat(cleaned);
+                let cleaned = str.replace(/,/g, '.').replace(/\s+/g, '');
+                const match = cleaned.match(/-?\d+(?:\.\d+)?/);
+                if (match) return parseFloat(match[0]);
+                return NaN;
             }
 
+            // getStatus hỗ trợ ≥, ≤, >=, <=
             function getStatus(valueStr, rangeStr) {
                 if (!valueStr || !rangeStr) return 'unknown';
                 let val = parseNumber(valueStr);
                 if (isNaN(val)) return 'unknown';
 
+                // Dạng khoảng "4 - 5.8" hoặc "4.0-5.0"
                 let rangeMatch = rangeStr.match(/(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/);
                 if (rangeMatch) {
                     let low = parseNumber(rangeMatch[1]);
@@ -846,17 +856,20 @@
                     }
                 }
 
-                let lessMatch = rangeStr.match(/[<≤]\s*(\d+[.,]?\d*)/);
+                // Dạng ≤ hoặc < (ưu tiên bắt cả <= và ≤)
+                let lessMatch = rangeStr.match(/(<=|≤|<)\s*(\d+[.,]?\d*)/);
                 if (lessMatch) {
-                    let threshold = parseNumber(lessMatch[1]);
+                    let threshold = parseNumber(lessMatch[2]);
                     if (!isNaN(threshold)) {
+                        // Nếu value >= threshold -> abnormal (vì vượt ngưỡng cho phép)
                         return val >= threshold ? 'abnormal' : 'normal';
                     }
                 }
 
-                let greaterMatch = rangeStr.match(/[>≥]\s*(\d+[.,]?\d*)/);
+                // Dạng ≥ hoặc > (bắt cả >= và ≥)
+                let greaterMatch = rangeStr.match(/(>=|≥|>)\s*(\d+[.,]?\d*)/);
                 if (greaterMatch) {
-                    let threshold = parseNumber(greaterMatch[1]);
+                    let threshold = parseNumber(greaterMatch[2]);
                     if (!isNaN(threshold)) {
                         return val <= threshold ? 'abnormal' : 'normal';
                     }
@@ -922,8 +935,24 @@
                     tbody.appendChild(tr);
                 });
 
+
+                document.querySelectorAll('#tableBody tr').forEach(tr => {
+                    tr.addEventListener('click', function(e) {
+                        const cb = this.querySelector('.row-select');
+
+                        if (cb && e.target !== cb && !e.target.closest('.status-badge')) {
+                            cb.checked = !cb.checked;
+ 
+                            const event = new Event('change', { bubbles: true });
+                            cb.dispatchEvent(event);
+                        }
+                    });
+                });
+
+
                 document.querySelectorAll('.row-select').forEach(cb => {
                     cb.addEventListener('change', function(e) {
+                        e.stopPropagation(); 
                         const idx = parseInt(this.dataset.index);
                         if (this.checked) {
                             if (!selectedIndices.includes(idx)) selectedIndices.push(idx);
@@ -948,7 +977,11 @@
                 currentRows.forEach((row, idx) => {
                     if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx);
                 });
-                selectedIndices = mainIndices;
+                // Nếu không có chỉ số chính, giữ nguyên lựa chọn cũ (không thông báo)
+                if (mainIndices.length > 0) {
+                    selectedIndices = mainIndices;
+                } // nếu không có thì không làm gì
+                // Cập nhật giao diện checkbox
                 document.querySelectorAll('.row-select').forEach(cb => {
                     const idx = parseInt(cb.dataset.index);
                     cb.checked = selectedIndices.includes(idx);
@@ -1029,6 +1062,7 @@
                 });
                 currentRows = rows;
 
+                // Mặc định chọn các chỉ số chính nếu có, nếu không chọn tất cả (giữ im lặng)
                 const mainIndices = [];
                 currentRows.forEach((row, idx) => {
                     if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx);
@@ -1063,6 +1097,7 @@
                 }, 2000);
             }
 
+            // theme
             const themeToggle = document.getElementById('themeToggle');
             const iconTheme = themeToggle.querySelector('i');
             const body = document.body;
@@ -1090,7 +1125,6 @@
                 btn.disabled = true;
                 const originalHtml = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang tóm tắt...';
-
                 setTimeout(() => {
                     try {
                         summarize();
