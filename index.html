@@ -419,7 +419,6 @@
             border-color: var(--primary-dark);
         }
 
-        /* Thanh công cụ chọn chỉ số */
         .selection-toolbar {
             display: flex;
             flex-wrap: wrap;
@@ -771,9 +770,9 @@
             </div>
         </div>
 
-        <!-- Thanh công cụ chọn chỉ số (luôn ẩn khi chưa mở bảng) -->
         <div id="selectionToolbar" class="selection-toolbar hidden">
             <button class="tool-btn" id="selectMainBtn"><i class="fas fa-star"></i> Chọn chỉ số chính</button>
+            <button class="tool-btn" id="selectAbnormalBtn"><i class="fas fa-exclamation-triangle"></i> Chọn chỉ số bất thường</button>
             <button class="tool-btn" id="selectAllBtn"><i class="fas fa-check-double"></i> Chọn tất cả</button>
             <button class="tool-btn" id="deselectAllBtn"><i class="fas fa-times"></i> Bỏ chọn tất cả</button>
             <span class="selected-count-badge" id="selectedCountBadge"><i class="fas fa-check-circle"></i> Đã chọn: 0/0</span>
@@ -800,13 +799,10 @@
         </div>
 
         <div class="footer-note">
-            <h3>Cải tiến chính</h3>
+            <h3>Cải tiến mới</h3>
             <ul>
-                <li><strong>1. Nhận diện thông minh:</strong> Tự động nhận diện và sàng lọc, tóm tắt các chỉ số cận lâm sàng.</li>
-                <li><strong>2. Đơn vị:</strong> Có nút bật/tắt hiển thị đơn vị của các chỉ số cận lâm sàng . Mặc định là ẩn đơn vị.</li>
-                <li><strong>3. Bật/tắt sáng/tối:</strong> Có nút bật/tắt sáng/tối.</li>
-                <li><strong>4. Chọn chỉ số linh hoạt:</strong> Có thể tick chọn hoặc bỏ chọn từng chỉ số trong bảng, chỉ những chỉ số được chọn mới xuất hiện trong tóm tắt.</li>
-                <li><strong>5. Chuyển trang:</strong> Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank" class="blink-link">VÀO ĐÂY</a></li>
+                <li><strong>1. "Chọn chỉ số bất thường":</strong> Một lần ấn để chọn tất cả chỉ số bất thường trong bảng.</li>
+                <li><strong>2. Chuyển trang:</strong> Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank" class="blink-link">VÀO ĐÂY</a></li>
             </ul>
         </div>
     </div>
@@ -826,29 +822,46 @@
                 if (!rawName) return '';
                 let trimmed = rawName.trim().replace(/^["']|["']$/g, '');
                 const match = trimmed.match(/^\([^)]+\)\s*(.*)/);
-                if (match) return match[1].trim();
-                return trimmed;
+                return match ? match[1].trim() : trimmed;
+            }
+
+            function parseNumber(str) {
+                if (!str) return NaN;
+                let cleaned = str.replace(/,/g, '.').replace(/[^\d.-]/g, '');
+                return parseFloat(cleaned);
             }
 
             function getStatus(valueStr, rangeStr) {
                 if (!valueStr || !rangeStr) return 'unknown';
-                let val = parseFloat(valueStr.replace(/,/g, '.').replace(/[^\d.-]/g, ''));
+                let val = parseNumber(valueStr);
                 if (isNaN(val)) return 'unknown';
+
                 let rangeMatch = rangeStr.match(/(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/);
                 if (rangeMatch) {
-                    let low = parseFloat(rangeMatch[1].replace(',', '.'));
-                    let high = parseFloat(rangeMatch[2].replace(',', '.'));
-                    if (isNaN(low) || isNaN(high)) return 'unknown';
-                    if (val > high) return 'abnormal';
-                    else return 'normal';
+                    let low = parseNumber(rangeMatch[1]);
+                    let high = parseNumber(rangeMatch[2]);
+                    if (!isNaN(low) && !isNaN(high)) {
+                        if (val < low || val > high) return 'abnormal';
+                        return 'normal';
+                    }
                 }
-                let lessMatch = rangeStr.match(/<\s*(\d+[.,]?\d*)/);
+
+                let lessMatch = rangeStr.match(/[<≤]\s*(\d+[.,]?\d*)/);
                 if (lessMatch) {
-                    let threshold = parseFloat(lessMatch[1].replace(',', '.'));
-                    if (isNaN(threshold)) return 'unknown';
-                    if (val > threshold) return 'abnormal';
-                    else return 'normal';
+                    let threshold = parseNumber(lessMatch[1]);
+                    if (!isNaN(threshold)) {
+                        return val >= threshold ? 'abnormal' : 'normal';
+                    }
                 }
+
+                let greaterMatch = rangeStr.match(/[>≥]\s*(\d+[.,]?\d*)/);
+                if (greaterMatch) {
+                    let threshold = parseNumber(greaterMatch[1]);
+                    if (!isNaN(threshold)) {
+                        return val <= threshold ? 'abnormal' : 'normal';
+                    }
+                }
+
                 return 'unknown';
             }
 
@@ -927,18 +940,29 @@
                 document.getElementById('totalIndicators').innerHTML = `<i class="fas fa-calculator"></i> Tổng chỉ số: ${currentRows.length}`;
                 const abnormalCount = currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length;
                 document.getElementById('abnormalIndicators').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Bất thường: ${abnormalCount}`;
-
                 updateSelectedCount();
             }
 
             function selectMainIndices() {
                 const mainIndices = [];
                 currentRows.forEach((row, idx) => {
-                    if (SPECIAL_NAMES.includes(row.cleanName)) {
-                        mainIndices.push(idx);
-                    }
+                    if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx);
                 });
                 selectedIndices = mainIndices;
+                document.querySelectorAll('.row-select').forEach(cb => {
+                    const idx = parseInt(cb.dataset.index);
+                    cb.checked = selectedIndices.includes(idx);
+                });
+                updateSelectedCount();
+                updateSummary();
+            }
+
+            function selectAbnormalIndices() {
+                const abnormalIndices = [];
+                currentRows.forEach((row, idx) => {
+                    if (getStatus(row.value, row.refRange) === 'abnormal') abnormalIndices.push(idx);
+                });
+                selectedIndices = abnormalIndices;
                 document.querySelectorAll('.row-select').forEach(cb => {
                     const idx = parseInt(cb.dataset.index);
                     cb.checked = selectedIndices.includes(idx);
@@ -972,10 +996,8 @@
                     currentRows = [];
                     selectedIndices = [];
                     renderTable();
-                    // Ẩn bảng và toolbar
                     document.getElementById('tableContainer').classList.add('hidden');
                     document.getElementById('selectionToolbar').classList.add('hidden');
-                    // Đặt lại nút toggle về trạng thái "Hiển thị bảng"
                     const toggleBtn = document.getElementById('toggleTableBtn');
                     const toggleIcon = document.getElementById('toggleIcon');
                     toggleIcon.className = 'fas fa-chevron-right';
@@ -1007,7 +1029,6 @@
                 });
                 currentRows = rows;
 
-                // Mặc định chọn các chỉ số chính nếu có, nếu không thì chọn tất cả
                 const mainIndices = [];
                 currentRows.forEach((row, idx) => {
                     if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx);
@@ -1021,10 +1042,8 @@
                 renderTable();
                 updateSummary();
 
-                // Sau khi tóm tắt, luôn ẩn bảng và toolbar (trở về trạng thái ban đầu)
                 document.getElementById('tableContainer').classList.add('hidden');
                 document.getElementById('selectionToolbar').classList.add('hidden');
-                // Đặt lại nút toggle
                 const toggleBtn = document.getElementById('toggleTableBtn');
                 const toggleIcon = document.getElementById('toggleIcon');
                 toggleIcon.className = 'fas fa-chevron-right';
@@ -1044,7 +1063,6 @@
                 }, 2000);
             }
 
-            // ----- Khởi tạo giao diện và sự kiện -----
             const themeToggle = document.getElementById('themeToggle');
             const iconTheme = themeToggle.querySelector('i');
             const body = document.body;
@@ -1092,10 +1110,8 @@
                 currentRows = [];
                 selectedIndices = [];
                 renderTable();
-                // Ẩn bảng và toolbar
                 document.getElementById('tableContainer').classList.add('hidden');
                 document.getElementById('selectionToolbar').classList.add('hidden');
-                // Đặt lại nút toggle
                 const toggleBtn = document.getElementById('toggleTableBtn');
                 const toggleIcon = document.getElementById('toggleIcon');
                 toggleIcon.className = 'fas fa-chevron-right';
@@ -1139,13 +1155,11 @@
 
             toggleBtn.addEventListener('click', function() {
                 if (tableContainer.classList.contains('hidden')) {
-                    // Hiện bảng và toolbar
                     tableContainer.classList.remove('hidden');
                     selectionToolbar.classList.remove('hidden');
                     toggleIcon.className = 'fas fa-chevron-down';
                     toggleBtn.innerHTML = '<i class="fas fa-chevron-down" id="toggleIcon"></i> Ẩn bảng';
                 } else {
-                    // Ẩn bảng và toolbar
                     tableContainer.classList.add('hidden');
                     selectionToolbar.classList.add('hidden');
                     toggleIcon.className = 'fas fa-chevron-right';
@@ -1156,6 +1170,10 @@
             document.getElementById('selectMainBtn').addEventListener('click', function() {
                 if (currentRows.length === 0) return;
                 selectMainIndices();
+            });
+            document.getElementById('selectAbnormalBtn').addEventListener('click', function() {
+                if (currentRows.length === 0) return;
+                selectAbnormalIndices();
             });
             document.getElementById('selectAllBtn').addEventListener('click', function() {
                 if (currentRows.length === 0) return;
