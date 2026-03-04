@@ -810,7 +810,7 @@
         </div>
 
         <div class="footer-note">
-            <h3>Cải tiến mới</h3>
+            <h3>4/3/2026 - Cải tiến mới</h3>
             <ul>
                 <li><strong>✓ Viết tắt chỉ số chính trong xét nghiệm huyết học thành dạng ngắn (HC, Hb, HTC, TC, BC, N%)</strong> – Có nút ẩn/hiện viết tắt (mặc định là viết tắt).</li>
                 <li><strong>✓ Chuyển trang</strong> - Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
@@ -1048,6 +1048,7 @@
             function summarize() {
                 const input = document.getElementById('dataInput').value;
                 if (!input.trim()) {
+                    showToast('Không có dữ liệu hợp lệ để tóm tắt');
                     document.getElementById('summaryText').innerText = 'Không có dữ liệu. Vui lòng dán dữ liệu vào ô trên.';
                     currentRows = [];
                     selectedIndices = [];
@@ -1085,6 +1086,19 @@
                 });
                 currentRows = rows;
 
+                if (currentRows.length === 0) {
+                    showToast('Không có dữ liệu hợp lệ để tóm tắt');
+                    document.getElementById('summaryText').innerText = 'Không có dữ liệu hợp lệ.';
+                    renderTable();
+                    document.getElementById('tableContainer').classList.add('hidden');
+                    document.getElementById('selectionToolbar').classList.add('hidden');
+                    const toggleBtn = document.getElementById('toggleTableBtn');
+                    const toggleIcon = document.getElementById('toggleIcon');
+                    toggleIcon.className = 'fas fa-chevron-right';
+                    toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
+                    return;
+                }
+
                 // Mặc định: chọn các chỉ số chính nếu có, nếu không chọn tất cả
                 const mainIndices = [];
                 currentRows.forEach((row, idx) => {
@@ -1106,6 +1120,7 @@
                 const toggleIcon = document.getElementById('toggleIcon');
                 toggleIcon.className = 'fas fa-chevron-right';
                 toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
+                showToast('Tóm tắt thành công');
             }
 
             function showToast(message) {
@@ -1166,6 +1181,10 @@
 
             // Nút xóa
             document.getElementById('clearBtn').addEventListener('click', function() {
+                if (currentRows.length === 0) {
+                    showToast('Không có dữ liệu để xóa');
+                    return;
+                }
                 document.getElementById('dataInput').value = '';
                 document.getElementById('summaryText').innerText = 'Chưa có dữ liệu.';
                 currentRows = [];
@@ -1183,6 +1202,10 @@
             // Sao chép tóm tắt
             document.getElementById('copySummaryBtn').addEventListener('click', function() {
                 const text = document.getElementById('summaryText').innerText;
+                if (!text || text === 'Chưa có dữ liệu.' || text === 'Không có dữ liệu hợp lệ.') {
+                    showToast('Không có nội dung để sao chép');
+                    return;
+                }
                 navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép tóm tắt!'));
             });
 
@@ -1209,6 +1232,7 @@
                 showUnit = !showUnit;
                 updateUnitToggleUI();
                 updateSummary();
+                showToast(showUnit ? 'Đã hiện đơn vị' : 'Đã ẩn đơn vị');
             });
 
             // Nút ẩn/hiện viết tắt (MỚI)
@@ -1234,6 +1258,7 @@
                 showAbbr = !showAbbr;
                 updateAbbrToggleUI();
                 updateSummary();
+                showToast(showAbbr ? 'Đã bật viết tắt' : 'Đã tắt viết tắt');
             });
 
             // Nút hiển thị/ẩn bảng
