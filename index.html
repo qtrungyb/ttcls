@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20384%20512%22%3E%3Cpath%20fill%3D%22%23d9534f%22%20d%3D%22M192%20512C86%20512%200%20426%200%20320%200%20228%2075%20128%20192%200%20309%20128%20384%20228%20384%20320c0%20106-86%20192-192%20192z%22%2F%3E%3C%2Fsvg%3E">
     <style>
-        /* (giữ nguyên toàn bộ CSS như bản trước) */
         * {
             margin: 0;
             padding: 0;
@@ -624,7 +623,7 @@
             border-left-color: var(--unknown-dark);
         }
 
-        /* Class cho giá trị bất thường - chỉ áp dụng cho phần số */
+        /* Class cho giá trị bất thường */
         .abnormal-value {
             color: #d9534f;
             font-weight: 600;
@@ -772,8 +771,8 @@
                     <span id="unitBtnText">Hiện đơn vị</span>
                 </div>
                 <div class="toggle-abbr-btn" id="toggleAbbrBtn">
-                    <i class="fas fa-i" id="abbrIcon"></i>
-                    <span id="abbrBtnText">Hiện viết tắt</span>
+                    <i class="fas fa-font" id="abbrIcon"></i>
+                    <span id="abbrBtnText">Tên đầy đủ</span>
                 </div>
                 <div class="copy-btn" id="copySummaryBtn"><i class="far fa-copy"></i> Sao chép</div>
             </div>
@@ -818,18 +817,17 @@
         </div>
 
         <div class="footer-note">
-            <h3>Cải tiến mới</h3>
+            <h3>Cải tiến chính</h3>
             <ul>
-                <li><strong>✓ Viết tắt chỉ số chính trong xét nghiệm huyết học thành dạng ngắn (HC, Hb, HTC, TC, BC, N%)</strong> – Có nút ẩn/hiện viết tắt (mặc định là viết tắt).</li>
-                <li><strong>✓ Bôi đỏ giá trị bất thường</strong> – Các chỉ số bất thường được tô màu đỏ giá trị trong Kết quả tóm tắt.</li>
-                <li><strong>✓ Chuyển trang</strong> - Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
+				<li><strong>✓ Viết tắt</strong> – Các chỉ số chính trong xét nghiệm huyết học viết tắt thành dạng ngắn (HC, Hb, HTC, TC, BC, N%).</li>
+                <li><strong>✓ Làm nổi bật giá trị bất thường</strong> – Các chỉ số bất thường được tô màu đỏ trong Kết quả tóm tắt và trong cột giá trị.</li>
+                <li><strong>✓ Chuyển trang</strong> – Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
             </ul>
         </div>
     </div>
 
     <script>
         (function() {
-            // Danh sách chỉ số chính
             const SPECIAL_NAMES = [
                 "Số lượng hồng cầu",
                 "Huyết sắc tố",
@@ -839,7 +837,6 @@
                 "Tỷ lệ bạch cầu GR"
             ];
 
-            // Bảng viết tắt
             const ABBR_MAP = {
                 "Số lượng hồng cầu": "HC",
                 "Huyết sắc tố": "Hb",
@@ -864,11 +861,13 @@
                 return NaN;
             }
 
+            // CẢI THIỆN: phân tích khoảng tham chiếu với nhiều dạng
             function getStatus(valueStr, rangeStr) {
                 if (!valueStr || !rangeStr) return 'unknown';
                 let val = parseNumber(valueStr);
                 if (isNaN(val)) return 'unknown';
 
+                // Xử lý khoảng tham chiếu dạng "x - y" hoặc "x–y"
                 let rangeMatch = rangeStr.match(/(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/);
                 if (rangeMatch) {
                     let low = parseNumber(rangeMatch[1]);
@@ -879,26 +878,32 @@
                     }
                 }
 
-                let lessMatch = rangeStr.match(/(<=|≤|<)\s*(\d+[.,]?\d*)/);
-                if (lessMatch) {
-                    let threshold = parseNumber(lessMatch[2]);
-                    if (!isNaN(threshold)) {
-                        return val >= threshold ? 'abnormal' : 'normal';
-                    }
+                // Xử lý bất đẳng thức: ≤, <, ≥, >
+                let lessEqualMatch = rangeStr.match(/(<=|≤)\s*(\d+[.,]?\d*)/);
+                if (lessEqualMatch) {
+                    let threshold = parseNumber(lessEqualMatch[2]);
+                    if (!isNaN(threshold)) return val <= threshold ? 'normal' : 'abnormal';
                 }
-
-                let greaterMatch = rangeStr.match(/(>=|≥|>)\s*(\d+[.,]?\d*)/);
+                let lessMatch = rangeStr.match(/<\s*(\d+[.,]?\d*)/);
+                if (lessMatch) {
+                    let threshold = parseNumber(lessMatch[1]);
+                    if (!isNaN(threshold)) return val < threshold ? 'normal' : 'abnormal';
+                }
+                let greaterEqualMatch = rangeStr.match(/(>=|≥)\s*(\d+[.,]?\d*)/);
+                if (greaterEqualMatch) {
+                    let threshold = parseNumber(greaterEqualMatch[2]);
+                    if (!isNaN(threshold)) return val >= threshold ? 'normal' : 'abnormal';
+                }
+                let greaterMatch = rangeStr.match(/>\s*(\d+[.,]?\d*)/);
                 if (greaterMatch) {
-                    let threshold = parseNumber(greaterMatch[2]);
-                    if (!isNaN(threshold)) {
-                        return val <= threshold ? 'abnormal' : 'normal';
-                    }
+                    let threshold = parseNumber(greaterMatch[1]);
+                    if (!isNaN(threshold)) return val > threshold ? 'normal' : 'abnormal';
                 }
 
                 return 'unknown';
             }
 
-            // Hàm escape HTML để tránh XSS
+            // Hàm escape HTML
             function escapeHtml(unsafe) {
                 return unsafe.replace(/[&<>"]/g, function(m) {
                     if (m === '&') return '&amp;';
@@ -911,7 +916,7 @@
 
             let currentRows = [];
             let showUnit = false;
-            let showAbbr = true;
+            let showAbbr = true;   // true: hiện viết tắt, false: hiện tên đầy đủ
             let selectedIndices = [];
 
             function updateSelectedCount() {
@@ -924,7 +929,7 @@
                 return currentRows.filter((_, idx) => selectedIndices.includes(idx));
             }
 
-            // Tạo HTML cho phần tóm tắt: chỉ bôi đỏ phần giá trị (con số) nếu bất thường
+            // Tạo HTML cho phần tóm tắt: bôi đỏ giá trị nếu bất thường
             function generateSummaryHTML(rows) {
                 if (!rows.length) return 'Chưa có dữ liệu.';
                 let parts = [];
@@ -951,6 +956,7 @@
                 document.getElementById('summaryText').innerHTML = generateSummaryHTML(selectedRows);
             }
 
+            // CẢI THIỆN: làm nổi bật giá trị bất thường trong bảng (ô giá trị được bôi đỏ)
             function renderTable() {
                 const tbody = document.getElementById('tableBody');
                 tbody.innerHTML = '';
@@ -962,13 +968,19 @@
                     else if (status === 'abnormal') statusHtml = '<span class="status-badge status-abnormal"><i class="fas fa-exclamation-circle"></i> Bất thường</span>';
                     else statusHtml = '<span class="status-badge status-unknown"><i class="fas fa-question-circle"></i> Không xác định</span>';
 
+                    // Tạo ô giá trị, nếu bất thường thì bôi đỏ
+                    let valueCell = escapeHtml(row.value);
+                    if (status === 'abnormal') {
+                        valueCell = '<span class="abnormal-value">' + valueCell + '</span>';
+                    }
+
                     const checked = selectedIndices.includes(index) ? 'checked' : '';
                     tr.innerHTML = `
                         <td><input type="checkbox" class="row-select" data-index="${index}" ${checked}></td>
                         <td>${row.stt}</td>
                         <td>${escapeHtml(row.rawName)}</td>
                         <td>${escapeHtml(row.cleanName)}</td>
-                        <td>${escapeHtml(row.value)}</td>
+                        <td>${valueCell}</td>
                         <td>${escapeHtml(row.refRange)}</td>
                         <td>${escapeHtml(row.unit)}</td>
                         <td>${statusHtml}</td>
