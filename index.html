@@ -623,7 +623,6 @@
             border-left-color: var(--unknown-dark);
         }
 
-        /* Class cho giá trị bất thường */
         .abnormal-value {
             color: #d9534f;
             font-weight: 600;
@@ -722,6 +721,134 @@
             color: var(--primary-dark);
         }
 
+        /* Quick copy section - dạng bảng, font và cỡ đồng bộ với bảng hiển thị */
+        .quick-copy-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            background-color: var(--surface-light);
+            border: 1px solid var(--border-light);
+            border-radius: 40px;
+            padding: 12px 28px;
+            width: fit-content;
+            transition: background-color 0.2s;
+        }
+        .quick-copy-toggle:hover {
+            background-color: #e0e7f5;
+            border-color: var(--primary-light);
+        }
+        body.dark-mode .quick-copy-toggle {
+            background-color: var(--surface-dark);
+            border-color: var(--border-dark);
+        }
+        body.dark-mode .quick-copy-toggle:hover {
+            background-color: #3e4b6e;
+            border-color: var(--primary-dark);
+        }
+        .quick-copy-toggle h3 {
+            font-size: 16px;      /* đồng bộ với nút Hiển thị bảng */
+            font-weight: 600;
+            color: var(--text-light);
+            margin: 0;
+        }
+        body.dark-mode .quick-copy-toggle h3 {
+            color: var(--text-dark);
+        }
+        .quick-copy-section {
+            margin-top: 20px;
+        }
+        .quick-copy-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-between;
+        }
+        .quick-copy-table {
+            flex: 1 1 280px;
+            background-color: var(--surface-light);
+            border-radius: 24px;
+            border: 1px solid var(--border-light);
+            border-collapse: collapse;
+            overflow: hidden;
+            font-size: 14.5px;  /* đồng bộ với bảng chính */
+            width: 100%;
+            margin-bottom: 0;
+        }
+        body.dark-mode .quick-copy-table {
+            background-color: var(--surface-dark);
+            border-color: var(--border-dark);
+        }
+        .quick-copy-table caption {
+            font-size: 16px;      /* lớn hơn một chút cho tiêu đề */
+            font-weight: 600;
+            background-color: var(--surface-light);
+            color: var(--text-light);
+            padding: 16px 16px 8px 16px;
+            text-align: left;
+            border-bottom: 2px solid var(--primary-light);
+            caption-side: top;
+        }
+        body.dark-mode .quick-copy-table caption {
+            background-color: var(--surface-dark);
+            color: var(--text-dark);
+            border-bottom-color: var(--primary-dark);
+        }
+        .quick-copy-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-light);
+            cursor: default;
+            font-size: 14.5px;
+        }
+        body.dark-mode .quick-copy-table td {
+            border-bottom-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+        .quick-copy-table tr:last-child td {
+            border-bottom: none;
+        }
+        .content-cell {
+            width: 70%;
+            word-break: break-word;
+            white-space: pre-line;  /* cho phép xuống dòng */
+        }
+        .copy-cell {
+            width: 30%;
+            text-align: right;
+            vertical-align: middle;
+        }
+        .copy-quick-btn {
+            background-color: var(--surface-light);
+            border: 1px solid var(--border-light);
+            border-radius: 30px;
+            padding: 6px 16px;
+            font-size: 13.5px;   /* tăng nhẹ cho cân xứng */
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+        .copy-quick-btn:hover {
+            background-color: #e0e7f5;
+            border-color: var(--primary-light);
+        }
+        body.dark-mode .copy-quick-btn {
+            background-color: var(--surface-dark);
+            border-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+        body.dark-mode .copy-quick-btn:hover {
+            background-color: #3e4b6e;
+            border-color: var(--primary-dark);
+        }
+
         @media (max-width: 700px) {
             .app-header { flex-wrap: wrap; justify-content: center; gap: 10px; }
             .app-header .icon { margin-right: 0; }
@@ -733,6 +860,12 @@
             .stats-badge { padding: 10px 24px; }
             .selection-toolbar { flex-direction: column; align-items: stretch; }
             .selected-count-badge { margin-left: 0; justify-content: center; }
+            .quick-copy-grid { flex-direction: column; }
+            .content-cell, .copy-cell { width: auto; }
+            .copy-cell { text-align: left; padding-top: 0; }
+            .quick-copy-table td { display: block; width: 100%; box-sizing: border-box; }
+            .quick-copy-table tr { display: block; margin-bottom: 10px; border-bottom: 1px solid var(--border-light); }
+            .quick-copy-table tr:last-child { border-bottom: none; }
         }
 
         @media (max-width: 500px) {
@@ -816,11 +949,114 @@
             </div>
         </div>
 
+        <!-- Toggle quick copy section (collapsible) -->
+        <div class="quick-copy-toggle" id="toggleQuickCopy">
+            <i class="fas fa-chevron-right" id="quickCopyIcon"></i>
+            <h3>Copy nhanh mẫu</h3>
+        </div>
+        <div id="quickCopySection" class="quick-copy-section hidden">
+            <div class="quick-copy-grid">
+                <!-- Table 1: Công thức máu -->
+                <table class="quick-copy-table">
+                    <caption>Liều dùng thuốc</caption>
+                    <tr><td class="content-cell">Uống 1 viên/lần * 1 lần/ngày vào buổi  sáng * 30 ngày [uống 1 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 1 lần/ngày vào buổi  sáng * 30 ngày [uống 1 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Uống 2 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 4 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 2 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 4 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Uống 1 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 2 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 2 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
+					<tr><td class="content-cell">Uống 1 viên/lần * 1 lần/ngày vào 20h * 30 ngày [uống 1 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 1 lần/ngày vào 20h * 30 ngày [uống 1 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
+					<tr><td class="content-cell">Uống 1 viên/lần * 3 lần/ngày sáng, trưa, chiều sau ăn * 30 ngày [uống 3 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 3 lần/ngày sáng, trưa, chiều sau ăn * 30 ngày [uống 3 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
+				</table>
+                <!-- Table 2: Chức năng thận -->
+                <!--<table class="quick-copy-table">
+                    <caption>Chức năng thận</caption>
+                    <tr><td class="content-cell">Ure 5.2, Creatinin 80, eGFR 90</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Ure 5.2, Creatinin 80, eGFR 90"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Ure 6.8, Creatinin 95, eGFR 75</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Ure 6.8, Creatinin 95, eGFR 75"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Cystatin C 0.9</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Cystatin C 0.9"><i class="far fa-copy"></i> Copy</button></td></tr>
+                </table>
+                <!-- Table 3: Điện giải đồ -->
+                <!--<table class="quick-copy-table">
+                    <caption>Điện giải đồ</caption>
+                    <tr><td class="content-cell">Na+ 138, K+ 4.2, Cl- 102</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Na+ 138, K+ 4.2, Cl- 102"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Ca++ 2.3, Mg++ 0.8, P 1.2</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Ca++ 2.3, Mg++ 0.8, P 1.2"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Lactate 1.5</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Lactate 1.5"><i class="far fa-copy"></i> Copy</button></td></tr>
+                </table>
+                <!-- Table 4: Toàn thân (mới) -->
+                <table class="quick-copy-table">
+                    <caption>Toàn thân</caption>
+                    <tr>
+                        <td class="content-cell" style="white-space: pre-line;">Bệnh nhân tỉnh, tiếp xúc được.
+Không nôn, không sốt.
+Da, niêm mạc hồng nhạt.
+Hạch ngoại biên không sờ thấy, tuyến giáp không to.
+Tim nhịp đều T1T2 rõ. 
+Phổi không có rale . 
+Bụng mềm không chướng, gan lách không to 
+Các cơ quan khác chưa phát hiện bệnh lý</td>
+                        <td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Bệnh nhân tỉnh, tiếp xúc được.
+Không nôn, không sốt.
+Da, niêm mạc hồng nhạt.
+Hạch ngoại biên không sờ thấy, tuyến giáp không to.
+Tim nhịp đều T1T2 rõ. 
+Phổi không có rale . 
+Bụng mềm không chướng, gan lách không to 
+Các cơ quan khác chưa phát hiện bệnh lý"><i class="far fa-copy"></i> Copy</button></td>
+                    </tr>
+					<tr>
+                        <td class="content-cell" style="white-space: pre-line;">Người bệnh có tiền sử tiểu đường, tăng huyết áp đang điều trị theo đơn ngoại trú, nay đến kỳ đến khám điều trị ngoại trú tiếp.
+Hiện tại: Người bệnh tỉnh, đau mỏi cổ gáy, đau lưng, đau ngực  đau đầu kèm theo hoa mắt chóng mặt, đau nhức các khớp, tê bì tay chân,  người mệt mỏi, ăn uống kém, ngủ kém.
+HA: 140/90 mmHg, Mạch:80 ck/phút	
+Hội chứng não màng não âm tính
+Tim nhịp đều T1T2 rõ
+Phổi  2 bên thông khí tốt
+Bụng mềm không chướng không có điểm đau khu trú
+Gan lách không to	
+Dấu hiệu thận to âm tính
+Các điểm niệu quản âm tính
+* Kết quả xn máu:
+</td>
+                        <td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Người bệnh có tiền sử tiểu đường, tăng huyết áp đang điều trị theo đơn ngoại trú, nay đến kỳ đến khám điều trị ngoại trú tiếp.
+Hiện tại: Người bệnh tỉnh, đau mỏi cổ gáy, đau lưng, đau ngực  đau đầu kèm theo hoa mắt chóng mặt, đau nhức các khớp, tê bì tay chân,  người mệt mỏi, ăn uống kém, ngủ kém.
+HA: 140/90 mmHg, Mạch:80 ck/phút	
+Hội chứng não màng não âm tính
+Tim nhịp đều T1T2 rõ
+Phổi  2 bên thông khí tốt
+Bụng mềm không chướng không có điểm đau khu trú
+Gan lách không to	
+Dấu hiệu thận to âm tính
+Các điểm niệu quản âm tính
+* Kết quả xn máu:"><i class="far fa-copy"></i> Copy</button></td>
+                    </tr>
+					<tr>
+                        <td class="content-cell" style="white-space: pre-line;">Người bệnh có tiền sử  tăng huyết áp tự mua thuốc uống , nay đến kỳ đến khám điều trị ngoại trú tiếp.
+Hiện tại: Người bệnh tỉnh, đau mỏi cổ gáy, đau lưng, đau ngực  đau đầu kèm theo hoa mắt chóng mặt, đau nhức các khớp, tê bì tay chân,  người mệt mỏi, ăn uống kém, ngủ kém.
+HA:  160/90mmHg, Mạch:79 ck/phút.	
+Hội chứng não màng não âm tính.
+Tim nhịp đều T1T2 rõ.
+Phổi  2 bên thông khí tốt.
+Bụng mềm không chướng không có điểm đau khu trú.
+Gan lách không to.	
+Dấu hiệu thận to âm tính.
+Các điểm niệu quản âm tính.
+</td>
+                        <td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Người bệnh có tiền sử  tăng huyết áp tự mua thuốc uống , nay đến kỳ đến khám điều trị ngoại trú tiếp.
+Hiện tại: Người bệnh tỉnh, đau mỏi cổ gáy, đau lưng, đau ngực  đau đầu kèm theo hoa mắt chóng mặt, đau nhức các khớp, tê bì tay chân,  người mệt mỏi, ăn uống kém, ngủ kém.
+HA:  160/90mmHg, Mạch:79 ck/phút.	
+Hội chứng não màng não âm tính.
+Tim nhịp đều T1T2 rõ.
+Phổi  2 bên thông khí tốt.
+Bụng mềm không chướng không có điểm đau khu trú.
+Gan lách không to.	
+Dấu hiệu thận to âm tính.
+Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Phần cải tiến chính chuyển xuống dưới cùng -->
         <div class="footer-note">
             <h3>Cải tiến chính</h3>
             <ul>
-				<li><strong>✓ Viết tắt</strong> – Các chỉ số chính trong xét nghiệm huyết học viết tắt thành dạng ngắn (HC, Hb, HTC, TC, BC, N%).</li>
-                <li><strong>✓ Làm nổi bật giá trị bất thường</strong> – Các chỉ số bất thường được tô màu đỏ trong Kết quả tóm tắt và trong cột giá trị.</li>
+                <li><strong>✓ Copy nhanh mẫu câu</strong>- Sao chép nhanh mẫu câu thường dùng.</li>
                 <li><strong>✓ Chuyển trang</strong> – Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
             </ul>
         </div>
@@ -861,13 +1097,11 @@
                 return NaN;
             }
 
-            // CẢI THIỆN: phân tích khoảng tham chiếu với nhiều dạng
             function getStatus(valueStr, rangeStr) {
                 if (!valueStr || !rangeStr) return 'unknown';
                 let val = parseNumber(valueStr);
                 if (isNaN(val)) return 'unknown';
 
-                // Xử lý khoảng tham chiếu dạng "x - y" hoặc "x–y"
                 let rangeMatch = rangeStr.match(/(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/);
                 if (rangeMatch) {
                     let low = parseNumber(rangeMatch[1]);
@@ -878,7 +1112,6 @@
                     }
                 }
 
-                // Xử lý bất đẳng thức: ≤, <, ≥, >
                 let lessEqualMatch = rangeStr.match(/(<=|≤)\s*(\d+[.,]?\d*)/);
                 if (lessEqualMatch) {
                     let threshold = parseNumber(lessEqualMatch[2]);
@@ -903,7 +1136,6 @@
                 return 'unknown';
             }
 
-            // Hàm escape HTML
             function escapeHtml(unsafe) {
                 return unsafe.replace(/[&<>"]/g, function(m) {
                     if (m === '&') return '&amp;';
@@ -916,7 +1148,7 @@
 
             let currentRows = [];
             let showUnit = false;
-            let showAbbr = true;   // true: hiện viết tắt, false: hiện tên đầy đủ
+            let showAbbr = true;
             let selectedIndices = [];
 
             function updateSelectedCount() {
@@ -929,7 +1161,6 @@
                 return currentRows.filter((_, idx) => selectedIndices.includes(idx));
             }
 
-            // Tạo HTML cho phần tóm tắt: bôi đỏ giá trị nếu bất thường
             function generateSummaryHTML(rows) {
                 if (!rows.length) return 'Chưa có dữ liệu.';
                 let parts = [];
@@ -956,7 +1187,6 @@
                 document.getElementById('summaryText').innerHTML = generateSummaryHTML(selectedRows);
             }
 
-            // CẢI THIỆN: làm nổi bật giá trị bất thường trong bảng (ô giá trị được bôi đỏ)
             function renderTable() {
                 const tbody = document.getElementById('tableBody');
                 tbody.innerHTML = '';
@@ -968,7 +1198,6 @@
                     else if (status === 'abnormal') statusHtml = '<span class="status-badge status-abnormal"><i class="fas fa-exclamation-circle"></i> Bất thường</span>';
                     else statusHtml = '<span class="status-badge status-unknown"><i class="fas fa-question-circle"></i> Không xác định</span>';
 
-                    // Tạo ô giá trị, nếu bất thường thì bôi đỏ
                     let valueCell = escapeHtml(row.value);
                     if (status === 'abnormal') {
                         valueCell = '<span class="abnormal-value">' + valueCell + '</span>';
@@ -1311,6 +1540,31 @@
             document.getElementById('deselectAllBtn').addEventListener('click', function() {
                 if (currentRows.length === 0) return;
                 deselectAll();
+            });
+
+            // Toggle quick copy section
+            const quickCopyToggle = document.getElementById('toggleQuickCopy');
+            const quickCopySection = document.getElementById('quickCopySection');
+            const quickCopyIcon = document.getElementById('quickCopyIcon');
+            quickCopyToggle.addEventListener('click', function() {
+                if (quickCopySection.classList.contains('hidden')) {
+                    quickCopySection.classList.remove('hidden');
+                    quickCopyIcon.className = 'fas fa-chevron-down';
+                } else {
+                    quickCopySection.classList.add('hidden');
+                    quickCopyIcon.className = 'fas fa-chevron-right';
+                }
+            });
+
+            // Quick copy buttons using data-copy-text
+            document.querySelectorAll('.copy-quick-btn[data-copy-text]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const text = this.dataset.copyText;
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast('Đã sao chép: ' + text.substring(0, 30) + (text.length > 30 ? '…' : ''));
+                    }).catch(() => showToast('Không thể sao chép'));
+                });
             });
 
             updateUnitToggleUI();
