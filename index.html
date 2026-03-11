@@ -721,7 +721,6 @@
             color: var(--primary-dark);
         }
 
-        /* Quick copy section - dạng bảng, font và cỡ đồng bộ với bảng hiển thị */
         .quick-copy-toggle {
             display: flex;
             align-items: center;
@@ -749,7 +748,7 @@
             border-color: var(--primary-dark);
         }
         .quick-copy-toggle h3 {
-            font-size: 16px;      /* đồng bộ với nút Hiển thị bảng */
+            font-size: 16px;
             font-weight: 600;
             color: var(--text-light);
             margin: 0;
@@ -773,7 +772,7 @@
             border: 1px solid var(--border-light);
             border-collapse: collapse;
             overflow: hidden;
-            font-size: 14.5px;  /* đồng bộ với bảng chính */
+            font-size: 14.5px;
             width: 100%;
             margin-bottom: 0;
         }
@@ -782,7 +781,7 @@
             border-color: var(--border-dark);
         }
         .quick-copy-table caption {
-            font-size: 16px;      /* lớn hơn một chút cho tiêu đề */
+            font-size: 16px;
             font-weight: 600;
             background-color: var(--surface-light);
             color: var(--text-light);
@@ -813,7 +812,7 @@
         .content-cell {
             width: 70%;
             word-break: break-word;
-            white-space: pre-line;  /* cho phép xuống dòng */
+            white-space: pre-line;
         }
         .copy-cell {
             width: 30%;
@@ -825,7 +824,7 @@
             border: 1px solid var(--border-light);
             border-radius: 30px;
             padding: 6px 16px;
-            font-size: 13.5px;   /* tăng nhẹ cho cân xứng */
+            font-size: 13.5px;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
@@ -949,37 +948,20 @@
             </div>
         </div>
 
-        <!-- Toggle quick copy section (collapsible) -->
         <div class="quick-copy-toggle" id="toggleQuickCopy">
             <i class="fas fa-chevron-right" id="quickCopyIcon"></i>
             <h3>Copy nhanh mẫu</h3>
         </div>
         <div id="quickCopySection" class="quick-copy-section hidden">
             <div class="quick-copy-grid">
-                <!-- Table 1: Công thức máu -->
                 <table class="quick-copy-table">
                     <caption>Liều dùng thuốc</caption>
                     <tr><td class="content-cell">Uống 1 viên/lần * 1 lần/ngày vào buổi  sáng * 30 ngày [uống 1 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 1 lần/ngày vào buổi  sáng * 30 ngày [uống 1 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
                     <tr><td class="content-cell">Uống 2 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 4 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 2 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 4 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
                     <tr><td class="content-cell">Uống 1 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 2 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 2 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
-					<tr><td class="content-cell">Uống 1 viên/lần * 1 lần/ngày vào 20h * 30 ngày [uống 1 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 1 lần/ngày vào 20h * 30 ngày [uống 1 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
-					<tr><td class="content-cell">Uống 1 viên/lần * 3 lần/ngày sáng, trưa, chiều sau ăn * 30 ngày [uống 3 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 3 lần/ngày sáng, trưa, chiều sau ăn * 30 ngày [uống 3 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
-				</table>
-                <!-- Table 2: Chức năng thận -->
-                <!--<table class="quick-copy-table">
-                    <caption>Chức năng thận</caption>
-                    <tr><td class="content-cell">Ure 5.2, Creatinin 80, eGFR 90</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Ure 5.2, Creatinin 80, eGFR 90"><i class="far fa-copy"></i> Copy</button></td></tr>
-                    <tr><td class="content-cell">Ure 6.8, Creatinin 95, eGFR 75</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Ure 6.8, Creatinin 95, eGFR 75"><i class="far fa-copy"></i> Copy</button></td></tr>
-                    <tr><td class="content-cell">Cystatin C 0.9</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Cystatin C 0.9"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Uống 1 viên/lần * 1 lần/ngày vào 20h * 30 ngày [uống 1 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 1 lần/ngày vào 20h * 30 ngày [uống 1 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
+                    <tr><td class="content-cell">Uống 1 viên/lần * 3 lần/ngày sáng, trưa, chiều sau ăn * 30 ngày [uống 3 viên/ngày]</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Uống 1 viên/lần * 3 lần/ngày sáng, trưa, chiều sau ăn * 30 ngày [uống 3 viên/ngày]"><i class="far fa-copy"></i> Copy</button></td></tr>
                 </table>
-                <!-- Table 3: Điện giải đồ -->
-                <!--<table class="quick-copy-table">
-                    <caption>Điện giải đồ</caption>
-                    <tr><td class="content-cell">Na+ 138, K+ 4.2, Cl- 102</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Na+ 138, K+ 4.2, Cl- 102"><i class="far fa-copy"></i> Copy</button></td></tr>
-                    <tr><td class="content-cell">Ca++ 2.3, Mg++ 0.8, P 1.2</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Ca++ 2.3, Mg++ 0.8, P 1.2"><i class="far fa-copy"></i> Copy</button></td></tr>
-                    <tr><td class="content-cell">Lactate 1.5</td><td class="copy-cell"><button class="copy-quick-btn" data-copy-text="Lactate 1.5"><i class="far fa-copy"></i> Copy</button></td></tr>
-                </table>
-                <!-- Table 4: Toàn thân (mới) -->
                 <table class="quick-copy-table">
                     <caption>Toàn thân</caption>
                     <tr>
@@ -1000,7 +982,7 @@ Phổi không có rale .
 Bụng mềm không chướng, gan lách không to 
 Các cơ quan khác chưa phát hiện bệnh lý"><i class="far fa-copy"></i> Copy</button></td>
                     </tr>
-					<tr>
+                    <tr>
                         <td class="content-cell" style="white-space: pre-line;">Người bệnh có tiền sử tiểu đường, tăng huyết áp đang điều trị theo đơn ngoại trú, nay đến kỳ đến khám điều trị ngoại trú tiếp.
 Hiện tại: Người bệnh tỉnh, đau mỏi cổ gáy, đau lưng, đau ngực  đau đầu kèm theo hoa mắt chóng mặt, đau nhức các khớp, tê bì tay chân,  người mệt mỏi, ăn uống kém, ngủ kém.
 HA: 140/90 mmHg, Mạch:80 ck/phút	
@@ -1025,7 +1007,7 @@ Dấu hiệu thận to âm tính
 Các điểm niệu quản âm tính
 * Kết quả xn máu:"><i class="far fa-copy"></i> Copy</button></td>
                     </tr>
-					<tr>
+                    <tr>
                         <td class="content-cell" style="white-space: pre-line;">Người bệnh có tiền sử  tăng huyết áp tự mua thuốc uống , nay đến kỳ đến khám điều trị ngoại trú tiếp.
 Hiện tại: Người bệnh tỉnh, đau mỏi cổ gáy, đau lưng, đau ngực  đau đầu kèm theo hoa mắt chóng mặt, đau nhức các khớp, tê bì tay chân,  người mệt mỏi, ăn uống kém, ngủ kém.
 HA:  160/90mmHg, Mạch:79 ck/phút.	
@@ -1052,11 +1034,10 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
             </div>
         </div>
 
-
         <div class="footer-note">
             <h3>Cải tiến chính</h3>
             <ul>
-				<li><strong>✓ Tự động sao chép</strong>- Sau khi nhấn Tóm tắt, kết quả sẽ được tự động sao chép vào clipboard.</li>
+                <li><strong>✓ Tự động sao chép</strong>- Sau khi nhấn Tóm tắt, kết quả sẽ được tự động sao chép vào clipboard.</li>
                 <li><strong>✓ Copy nhanh mẫu câu</strong>- Sao chép nhanh mẫu câu thường dùng.</li>
                 <li><strong>✓ Chuyển trang</strong> – Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
             </ul>
@@ -1366,7 +1347,6 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
                 renderTable();
                 updateSummary();
 
-                // Tự động sao chép kết quả tóm tắt vào clipboard
                 const summaryDiv = document.getElementById('summaryText');
                 const summaryContent = summaryDiv.innerText;
                 if (summaryContent && summaryContent !== 'Chưa có dữ liệu.' && summaryContent !== 'Không có dữ liệu hợp lệ.') {
@@ -1397,7 +1377,6 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
                 }, 2000);
             }
 
-            // ===== Giao diện =====
             const themeToggle = document.getElementById('themeToggle');
             const iconTheme = themeToggle.querySelector('i');
             const body = document.body;
@@ -1552,7 +1531,6 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
                 deselectAll();
             });
 
-            // Toggle quick copy section
             const quickCopyToggle = document.getElementById('toggleQuickCopy');
             const quickCopySection = document.getElementById('quickCopySection');
             const quickCopyIcon = document.getElementById('quickCopyIcon');
@@ -1566,7 +1544,6 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
                 }
             });
 
-            // Quick copy buttons using data-copy-text
             document.querySelectorAll('.copy-quick-btn[data-copy-text]').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
