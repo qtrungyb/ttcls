@@ -899,6 +899,7 @@
         <div class="summary-header">
             <h2><i class="fas fa-clipboard-check"></i> Kết quả tóm tắt</h2>
             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div class="copy-btn" id="copySummaryBtn"><i class="far fa-copy"></i> Sao chép</div>
                 <div class="toggle-unit-btn" id="toggleUnitBtn">
                     <i class="fas fa-eye-slash" id="unitIcon"></i>
                     <span id="unitBtnText">Hiện đơn vị</span>
@@ -907,7 +908,6 @@
                     <i class="fas fa-font" id="abbrIcon"></i>
                     <span id="abbrBtnText">Tên đầy đủ</span>
                 </div>
-                <div class="copy-btn" id="copySummaryBtn"><i class="far fa-copy"></i> Sao chép</div>
             </div>
         </div>
         <div class="summary-card" id="summaryText">Chưa có dữ liệu.</div>
@@ -1052,10 +1052,11 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
             </div>
         </div>
 
-        <!-- Phần cải tiến chính chuyển xuống dưới cùng -->
+
         <div class="footer-note">
             <h3>Cải tiến chính</h3>
             <ul>
+				<li><strong>✓ Tự động sao chép</strong>- Sau khi nhấn Tóm tắt, kết quả sẽ được tự động sao chép vào clipboard.</li>
                 <li><strong>✓ Copy nhanh mẫu câu</strong>- Sao chép nhanh mẫu câu thường dùng.</li>
                 <li><strong>✓ Chuyển trang</strong> – Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
             </ul>
@@ -1365,13 +1366,22 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
                 renderTable();
                 updateSummary();
 
+                // Tự động sao chép kết quả tóm tắt vào clipboard
+                const summaryDiv = document.getElementById('summaryText');
+                const summaryContent = summaryDiv.innerText;
+                if (summaryContent && summaryContent !== 'Chưa có dữ liệu.' && summaryContent !== 'Không có dữ liệu hợp lệ.') {
+                    navigator.clipboard.writeText(summaryContent).catch(err => {
+                        console.error('Không thể sao chép tự động: ', err);
+                    });
+                }
+
                 document.getElementById('tableContainer').classList.add('hidden');
                 document.getElementById('selectionToolbar').classList.add('hidden');
                 const toggleBtn = document.getElementById('toggleTableBtn');
                 const toggleIcon = document.getElementById('toggleIcon');
                 toggleIcon.className = 'fas fa-chevron-right';
                 toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng';
-                showToast('Tóm tắt thành công');
+                showToast('Đã tóm tắt và sao chép vào clipboard');
             }
 
             function showToast(message) {
