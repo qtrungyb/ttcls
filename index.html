@@ -1103,9 +1103,7 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
         <div class="footer-note">
             <h3>Cải tiến chính</h3>
             <ul>
-				<li><strong>✓ Cải thiện giao diện trực quan hơn.</strong></li>
-                <li><strong>✓ Tự động sao chép</strong>- Sau khi nhấn Tóm tắt, kết quả sẽ được tự động sao chép vào clipboard.</li>
-                <li><strong>✓ Copy nhanh mẫu câu</strong>- Sao chép nhanh mẫu câu thường dùng.</li>
+                <li><strong>✓ Thêm ":" trước mỗi giá trị nếu chỉ số là T3, T4, TSH, Tg.</strong></li>
                 <li><strong>✓ Chuyển trang</strong> – Nếu cần tóm tắt cận lâm sàng trong y lệnh nội trú, vui lòng <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY</a></li>
             </ul>
         </div>
@@ -1225,7 +1223,12 @@ Các điểm niệu quản âm tính."><i class="far fa-copy"></i> Copy</button>
                             valueHtml = '<span class="abnormal-value">' + valueHtml + '</span>';
                         }
                         let unitHtml = (showUnit && r.unit) ? ' ' + escapeHtml(r.unit) : '';
-                        parts.push(escapeHtml(name) + ' ' + valueHtml + unitHtml);
+                        // Thêm dấu hai chấm cho các chỉ số T3, T4, TSH, Tg
+                        let separator = ' ';
+                        if (['T3', 'T4', 'TSH', 'Tg'].includes(name)) {
+                            separator = ': ';
+                        }
+                        parts.push(escapeHtml(name) + separator + valueHtml + unitHtml);
                     }
                 });
                 return parts.join(', ') || 'Không tìm thấy chỉ số nào có giá trị.';
