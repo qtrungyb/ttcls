@@ -799,7 +799,6 @@
             color: var(--primary-dark);
         }
 
-        /* ===== TRANSFER SECTION - CỐ ĐỊNH CUỐI TRANG, NHỎ GỌN ===== */
         .transfer-section {
             position: fixed;
             bottom: 24px;
@@ -985,6 +984,14 @@
             width: 70%;
             word-break: break-word;
             white-space: pre-line;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .content-cell:hover {
+            background-color: #eef3ff;
+        }
+        body.dark-mode .content-cell:hover {
+            background-color: #2f3a5c;
         }
         .copy-cell {
             width: 30%;
@@ -1110,11 +1117,8 @@ Dùng thuốc theo đơn ngoại trú.</td><td class="copy-cell"><button class="
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- <div class="footer-note"><h3>Cải tiến chính</h3><ul><li><strong>✓ Nút tự động tóm tắt</strong> – Bật/tắt tự động tóm tắt và sao chép khi dán dữ liệu.</li></ul></div>
-    </div> -->
-
-    <!-- PHẦN CHUYỂN TRANG - CỐ ĐỊNH CUỐI TRANG, NHỎ GỌN -->
     <div class="transfer-section"><i class="fas fa-arrow-right"></i> <strong>Tóm tắt CLS trong y lệnh nội trú</strong><a href="https://qtrungyb.github.io/ttcls2/" target="_blank">VÀO ĐÂY <i class="fas fa-external-link-alt"></i></a></div>
 
     <script>
@@ -1147,13 +1151,13 @@ Dùng thuốc theo đơn ngoại trú.</td><td class="copy-cell"><button class="
             function generateSummaryHTML(rows) { if (!rows.length) return 'Chưa có dữ liệu.'; let parts = []; rows.forEach(r => { if (r.value) { let name = r.cleanName; if (showAbbr && ABBR_MAP[name]) name = ABBR_MAP[name]; let valueHtml = escapeHtml(r.value); if (getStatus(r.value, r.refRange) === 'abnormal') valueHtml = '<span class="abnormal-value">' + valueHtml + '</span>'; let unitHtml = (showUnit && r.unit) ? ' ' + escapeHtml(r.unit) : ''; let separator = ' '; if (['T3','T4','TSH','Tg'].includes(name)) separator = ': '; parts.push(escapeHtml(name) + separator + valueHtml + unitHtml); } }); return parts.join(', ') || 'Không tìm thấy chỉ số nào có giá trị.'; }
             function updateSummary() { document.getElementById('summaryText').innerHTML = generateSummaryHTML(getSelectedRows()); }
             function highlightSelectedRows() { document.querySelectorAll('#tableBody tr').forEach((tr, idx) => { const cb = tr.querySelector('.row-select'); if (cb && cb.checked) tr.classList.add('selected'); else tr.classList.remove('selected'); }); }
-            function renderTable() { const tbody = document.getElementById('tableBody'); tbody.innerHTML = ''; currentRows.forEach((row, index) => { const tr = document.createElement('tr'); const status = getStatus(row.value, row.refRange); let statusHtml = status === 'normal' ? '<span class="status-badge status-normal"><i class="fas fa-check-circle"></i> Bình thường</span>' : (status === 'abnormal' ? '<span class="status-badge status-abnormal"><i class="fas fa-exclamation-circle"></i> Bất thường</span>' : '<span class="status-badge status-unknown"><i class="fas fa-question-circle"></i> Không xác định</span>'); let valueCell = escapeHtml(row.value); if (status === 'abnormal') valueCell = '<span class="abnormal-value">' + valueCell + '</span>'; const checked = selectedIndices.includes(index) ? 'checked' : ''; tr.innerHTML = `<td><input type="checkbox" class="row-select" data-index="${index}" ${checked}></td><td>${row.stt}</td><td>${escapeHtml(row.rawName)}</td><td>${escapeHtml(row.cleanName)}</td><td>${valueCell}</td><td>${escapeHtml(row.refRange)}</td><td>${escapeHtml(row.unit)}</td><td>${statusHtml}</td>`; tbody.appendChild(tr); }); document.querySelectorAll('#tableBody tr').forEach(tr => { tr.addEventListener('click', function(e) { const cb = this.querySelector('.row-select'); if (cb && e.target !== cb && !e.target.closest('.status-badge')) { cb.checked = !cb.checked; const event = new Event('change', { bubbles: true }); cb.dispatchEvent(event); } }); }); document.querySelectorAll('.row-select').forEach(cb => { cb.addEventListener('change', function(e) { e.stopPropagation(); const idx = parseInt(this.dataset.index); if (this.checked) { if (!selectedIndices.includes(idx)) selectedIndices.push(idx); } else { selectedIndices = selectedIndices.filter(i => i !== idx); } selectedIndices.sort((a,b)=>a-b); updateSelectedCount(); updateSummary(); highlightSelectedRows(); }); }); document.getElementById('rowCountBadge').innerHTML = `<i class="fas fa-database"></i> ${currentRows.length} dòng`; document.getElementById('totalIndicators').innerHTML = `<i class="fas fa-calculator"></i> Tổng chỉ số: ${currentRows.length}`; const abnormalCount = currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length; document.getElementById('abnormalIndicators').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Bất thường: ${abnormalCount}`; updateSelectedCount(); highlightSelectedRows(); }
+            function renderTable() { const tbody = document.getElementById('tableBody'); tbody.innerHTML = ''; currentRows.forEach((row, index) => { const tr = document.createElement('tr'); const status = getStatus(row.value, row.refRange); let statusHtml = status === 'normal' ? '<span class="status-badge status-normal"><i class="fas fa-check-circle"></i> Bình thường</span>' : (status === 'abnormal' ? '<span class="status-badge status-abnormal"><i class="fas fa-exclamation-circle"></i> Bất thường</span>' : '<span class="status-badge status-unknown"><i class="fas fa-question-circle"></i> Không xác định</span>'); let valueCell = escapeHtml(row.value); if (status === 'abnormal') valueCell = '<span class="abnormal-value">' + valueCell + '</span>'; const checked = selectedIndices.includes(index) ? 'checked' : ''; tr.innerHTML = `<td><input type="checkbox" class="row-select" data-index="${index}" ${checked}></td><td>${escapeHtml(row.stt)}</td><td>${escapeHtml(row.rawName)}</td><td>${escapeHtml(row.cleanName)}</td><td>${valueCell}</td><td>${escapeHtml(row.refRange)}</td><td>${escapeHtml(row.unit)}</td><td>${statusHtml}</td>`; tbody.appendChild(tr); }); document.querySelectorAll('#tableBody tr').forEach(tr => { tr.addEventListener('click', function(e) { const cb = this.querySelector('.row-select'); if (cb && e.target !== cb && !e.target.closest('.status-badge')) { cb.checked = !cb.checked; const event = new Event('change', { bubbles: true }); cb.dispatchEvent(event); } }); }); document.querySelectorAll('.row-select').forEach(cb => { cb.addEventListener('change', function(e) { e.stopPropagation(); const idx = parseInt(this.dataset.index); if (this.checked) { if (!selectedIndices.includes(idx)) selectedIndices.push(idx); } else { selectedIndices = selectedIndices.filter(i => i !== idx); } selectedIndices.sort((a,b)=>a-b); updateSelectedCount(); updateSummary(); highlightSelectedRows(); }); }); document.getElementById('rowCountBadge').innerHTML = `<i class="fas fa-database"></i> ${currentRows.length} dòng`; document.getElementById('totalIndicators').innerHTML = `<i class="fas fa-calculator"></i> Tổng chỉ số: ${currentRows.length}`; const abnormalCount = currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length; document.getElementById('abnormalIndicators').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Bất thường: ${abnormalCount}`; updateSelectedCount(); highlightSelectedRows(); }
             function selectMainIndices() { const mainIndices = []; currentRows.forEach((row, idx) => { if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx); }); if (mainIndices.length) selectedIndices = mainIndices; document.querySelectorAll('.row-select').forEach(cb => { const idx = parseInt(cb.dataset.index); cb.checked = selectedIndices.includes(idx); }); updateSelectedCount(); updateSummary(); highlightSelectedRows(); }
             function selectAbnormalIndices() { const abnormalIndices = []; currentRows.forEach((row, idx) => { if (getStatus(row.value, row.refRange) === 'abnormal') abnormalIndices.push(idx); }); selectedIndices = abnormalIndices; document.querySelectorAll('.row-select').forEach(cb => { const idx = parseInt(cb.dataset.index); cb.checked = selectedIndices.includes(idx); }); updateSelectedCount(); updateSummary(); highlightSelectedRows(); }
             function selectAll() { selectedIndices = currentRows.map((_, idx) => idx); document.querySelectorAll('.row-select').forEach(cb => cb.checked = true); updateSelectedCount(); updateSummary(); highlightSelectedRows(); }
             function deselectAll() { selectedIndices = []; document.querySelectorAll('.row-select').forEach(cb => cb.checked = false); updateSelectedCount(); updateSummary(); highlightSelectedRows(); }
             
-            function performSummarize() { const input = document.getElementById('dataInput').value; if (!input.trim()) { showToast('Không có dữ liệu hợp lệ để tóm tắt'); document.getElementById('summaryText').innerHTML = 'Không có dữ liệu. Vui lòng dán dữ liệu vào ô trên.'; currentRows = []; selectedIndices = []; renderTable(); document.getElementById('tableContainer').classList.add('hidden'); document.getElementById('selectionToolbar').classList.add('hidden'); const toggleBtn = document.getElementById('toggleTableBtn'), toggleIcon = document.getElementById('toggleIcon'); toggleIcon.className = 'fas fa-chevron-right'; toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng'; return; } const lines = input.split(/\r?\n/); const rows = []; lines.forEach(line => { line = line.trim(); if (line === '') return; const cols = line.split('\t').map(c => c.trim()); const nonEmpty = cols.filter(c => c !== ''); if (nonEmpty.length < 3) return; const stt = nonEmpty[0]; if (!/^\d+$/.test(stt)) return; rows.push({ stt, rawName: nonEmpty[1], cleanName: cleanName(nonEmpty[1]), value: nonEmpty[2], refRange: nonEmpty[3] || '', unit: nonEmpty[4] || '' }); }); currentRows = rows; if (currentRows.length === 0) { showToast('Không có dữ liệu hợp lệ để tóm tắt'); document.getElementById('summaryText').innerHTML = 'Không có dữ liệu hợp lệ.'; renderTable(); document.getElementById('tableContainer').classList.add('hidden'); document.getElementById('selectionToolbar').classList.add('hidden'); const toggleBtn = document.getElementById('toggleTableBtn'), toggleIcon = document.getElementById('toggleIcon'); toggleIcon.className = 'fas fa-chevron-right'; toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng'; return; } const mainIndices = []; currentRows.forEach((row, idx) => { if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx); }); if (mainIndices.length) selectedIndices = mainIndices; else selectedIndices = currentRows.map((_, idx) => idx); renderTable(); updateSummary(); const summaryDiv = document.getElementById('summaryText'); const summaryContent = summaryDiv.innerText; if (summaryContent && summaryContent !== 'Chưa có dữ liệu.' && summaryContent !== 'Không có dữ liệu hợp lệ.') { navigator.clipboard.writeText(summaryContent).catch(err => console.error('Clipboard error:', err)); } document.getElementById('tableContainer').classList.add('hidden'); document.getElementById('selectionToolbar').classList.add('hidden'); const toggleBtn = document.getElementById('toggleTableBtn'), toggleIcon = document.getElementById('toggleIcon'); toggleIcon.className = 'fas fa-chevron-right'; toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng'; showToast('Đã tự động tóm tắt' + (autoSummarizeEnabled ? '' : '') + ' và sao chép'); }
+            function performSummarize() { const input = document.getElementById('dataInput').value; if (!input.trim()) { showToast('Không có dữ liệu hợp lệ để tóm tắt'); document.getElementById('summaryText').innerHTML = 'Không có dữ liệu. Vui lòng dán dữ liệu vào ô trên.'; currentRows = []; selectedIndices = []; renderTable(); document.getElementById('tableContainer').classList.add('hidden'); document.getElementById('selectionToolbar').classList.add('hidden'); const toggleBtn = document.getElementById('toggleTableBtn'), toggleIcon = document.getElementById('toggleIcon'); toggleIcon.className = 'fas fa-chevron-right'; toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng'; return; } const lines = input.split(/\r?\n/); const rows = []; lines.forEach(line => { line = line.trim(); if (line === '') return; const cols = line.split('\t').map(c => c.trim()); const nonEmpty = cols.filter(c => c !== ''); if (nonEmpty.length < 3) return; const stt = nonEmpty[0]; if (!/^\d+$/.test(stt)) return; rows.push({ stt, rawName: nonEmpty[1], cleanName: cleanName(nonEmpty[1]), value: nonEmpty[2], refRange: nonEmpty[3] || '', unit: nonEmpty[4] || '' }); }); currentRows = rows; if (currentRows.length === 0) { showToast('Không có dữ liệu hợp lệ để tóm tắt'); document.getElementById('summaryText').innerHTML = 'Không có dữ liệu hợp lệ.'; renderTable(); document.getElementById('tableContainer').classList.add('hidden'); document.getElementById('selectionToolbar').classList.add('hidden'); const toggleBtn = document.getElementById('toggleTableBtn'), toggleIcon = document.getElementById('toggleIcon'); toggleIcon.className = 'fas fa-chevron-right'; toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng'; return; } const mainIndices = []; currentRows.forEach((row, idx) => { if (SPECIAL_NAMES.includes(row.cleanName)) mainIndices.push(idx); }); if (mainIndices.length) selectedIndices = mainIndices; else selectedIndices = currentRows.map((_, idx) => idx); renderTable(); updateSummary(); const summaryContent = document.getElementById('summaryText').innerText; if (summaryContent && summaryContent !== 'Chưa có dữ liệu.' && summaryContent !== 'Không có dữ liệu hợp lệ.') { navigator.clipboard.writeText(summaryContent).catch(err => console.error('Clipboard error:', err)); } document.getElementById('tableContainer').classList.add('hidden'); document.getElementById('selectionToolbar').classList.add('hidden'); const toggleBtn = document.getElementById('toggleTableBtn'), toggleIcon = document.getElementById('toggleIcon'); toggleIcon.className = 'fas fa-chevron-right'; toggleBtn.innerHTML = '<i class="fas fa-chevron-right" id="toggleIcon"></i> Hiển thị bảng'; showToast('Đã tự động tóm tắt và sao chép'); }
             function showToast(message) { const existingToast = document.querySelector('.toast-message'); if (existingToast) existingToast.remove(); const toast = document.createElement('div'); toast.className = 'toast-message'; toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`; document.body.appendChild(toast); setTimeout(() => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 400); }, 2000); }
             
             const dataTextarea = document.getElementById('dataInput'); dataTextarea.addEventListener('paste', function(e) { if (!autoSummarizeEnabled) return; setTimeout(() => { performSummarize(); }, 20); });
@@ -1192,6 +1196,7 @@ Dùng thuốc theo đơn ngoại trú.</td><td class="copy-cell"><button class="
                         const expandBtn = document.createElement('button'); expandBtn.className = 'expand-collapse-btn'; expandBtn.innerHTML = '<i class="fas fa-angle-down"></i> Xem thêm';
                         expandBtn.onclick = (e) => { e.stopPropagation(); buildFull(); };
                         contentCell.appendChild(span); contentCell.appendChild(expandBtn);
+                        contentCell.setAttribute('data-full-text', fullText);
                     }
                     function buildFull() {
                         contentCell.innerHTML = '';
@@ -1200,11 +1205,43 @@ Dùng thuốc theo đơn ngoại trú.</td><td class="copy-cell"><button class="
                         const collapseBtn = document.createElement('button'); collapseBtn.className = 'expand-collapse-btn'; collapseBtn.innerHTML = '<i class="fas fa-angle-up"></i> Thu gọn';
                         collapseBtn.onclick = (e) => { e.stopPropagation(); buildTruncated(); };
                         contentCell.appendChild(span); contentCell.appendChild(collapseBtn);
+                        contentCell.setAttribute('data-full-text', fullText);
                     }
                     buildTruncated();
                 });
             }
+            
+            function initQuickCopyClickToCopy() {
+                const allContentCells = document.querySelectorAll('.quick-copy-table .content-cell');
+                allContentCells.forEach(cell => {
+                    if (!cell.hasAttribute('data-full-text')) {
+                        const fullText = cell.innerText.trim();
+                        cell.setAttribute('data-full-text', fullText);
+                    }
+                });
+                const quickSection = document.querySelector('.quick-copy-section');
+                if (!quickSection) return;
+                quickSection.addEventListener('click', (e) => {
+                    const target = e.target;
+                    if (target.closest('.copy-quick-btn') || target.closest('.expand-collapse-btn')) return;
+                    const contentCell = target.closest('.content-cell');
+                    if (!contentCell) return;
+                    e.stopPropagation();
+                    const fullText = contentCell.getAttribute('data-full-text');
+                    if (fullText && fullText.trim().length > 0) {
+                        navigator.clipboard.writeText(fullText).then(() => {
+                            showToast('Đã sao chép: ' + fullText.substring(0, 40) + (fullText.length > 40 ? '…' : ''));
+                        }).catch(() => showToast('Không thể sao chép'));
+                    } else {
+                        const fallback = contentCell.innerText.trim();
+                        if (fallback) navigator.clipboard.writeText(fallback).then(() => showToast('Đã sao chép!'));
+                        else showToast('Không có nội dung');
+                    }
+                });
+            }
+            
             initToanthanCollapsible();
+            initQuickCopyClickToCopy();
             
             updateUnitToggleUI(); updateAbbrToggleUI();
             const themeToggle = document.getElementById('themeToggle'), iconTheme = themeToggle.querySelector('i'), body = document.body;
