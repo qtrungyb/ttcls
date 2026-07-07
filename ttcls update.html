@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Tóm tắt CLS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20384%20512%22%3E%3Cpath%20fill%3D%22%23d9534f%22%20d%3D%22M192%20512C86%20512%200%20426%200%20320%200%20228%2075%20128%20192%200%20309%20128%20384%20228%20384%20320c0%20106-86%20192-192%20192z%22%2F%3E%3C%2Fsvg%3E">
+  <style>
+    /* ---------- RESET & VARIABLES ---------- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-light: #f4f7fb; --bg-dark: #0f141e;
+      --surface-light: #ffffff; --surface-dark: #1e2436;
+      --text-light: #1a2639; --text-dark: #e3eaf3;
+      --border-light: #d4e0f0; --border-dark: #2f3b54;
+      --primary-light: #3a5fd0; --primary-dark: #6d8eff;
+      --primary-gradient: linear-gradient(145deg, #3a5fd0, #5f8aff);
+      --abnormal-light: #c44542; --abnormal-dark: #ff8a7a;
+      --abnormal-bg-light: #fff0f0; --abnormal-bg-dark: #3b2a2a;
+      --normal-light: #2b8c5e; --normal-dark: #6fcf97;
+      --unknown-light: #5b6f8c; --unknown-dark: #9aaec9;
+      --shadow-sm: 0 4px 12px rgba(0, 20, 40, 0.05);
+      --shadow-md: 0 8px 24px rgba(0, 20, 40, 0.08);
+      --shadow-lg: 0 16px 40px rgba(0, 20, 40, 0.12);
+      --transition: all 0.25s ease;
+    }
+
+    /* ---------- BASE ---------- */
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: var(--bg-light); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 32px 20px; color: var(--text-light); line-height: 1.5; transition: background-color 0.3s, color 0.3s; margin: 0; }
+    body.dark-mode { background-color: var(--bg-dark); color: var(--text-dark); }
+    .container { max-width: 1200px; width: 100%; background-color: var(--surface-light); border-radius: 36px; padding: 36px 36px 48px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s; }
+    body.dark-mode .container { background-color: var(--surface-dark); border-color: var(--border-dark); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+
+    /* ---------- ANIMATIONS ---------- */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeInUp 0.4s ease forwards; }
+
+    /* ---------- HEADER ---------- */
+    .app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; flex-wrap: wrap; gap: 16px; }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .icon { background: var(--primary-gradient); width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: white; box-shadow: 0 12px 20px -10px rgba(58, 95, 208, 0.4); border: 2px solid rgba(255, 255, 255, 0.3); }
+    .app-header h1 { font-size: 30px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; background: linear-gradient(145deg, #1a2b4e, #2a3f6e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
+    body.dark-mode .app-header h1 { background: linear-gradient(145deg, #b3ccff, #d9e6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+
+    /* ---------- BUTTONS & ICON BTNS ---------- */
+    .icon-btn { background-color: var(--surface-light); border: 1px solid var(--border-light); border-radius: 40px; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); color: var(--text-light); font-size: 20px; box-shadow: var(--shadow-sm); }
+    .icon-btn:hover { background-color: #e0ebff; border-color: var(--primary-light); transform: translateY(-2px) scale(1.05); box-shadow: 0 8px 18px rgba(58, 95, 208, 0.15); }
+    body.dark-mode .icon-btn { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .icon-btn:hover { background-color: #2c3857; border-color: var(--primary-dark); }
+    .icon-btn.auto-active { background: var(--primary-gradient); border: none; color: white; box-shadow: 0 6px 14px rgba(58, 95, 208, 0.3); }
+    body.dark-mode .icon-btn.auto-active { background: linear-gradient(145deg, #4a70e0, #6d8eff); color: #0b0f1a; }
+
+    /* ---------- INPUT AREA ---------- */
+    .input-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; font-weight: 600; color: var(--text-light); font-size: 18px; padding: 0 6px; flex-wrap: wrap; gap: 12px; }
+    body.dark-mode .input-label { color: var(--text-dark); }
+    .textarea-wrapper { position: relative; }
+    .textarea-wrapper > i { position: absolute; left: 24px; top: 24px; font-size: 24px; color: var(--primary-light); opacity: 0.8; pointer-events: none; transition: opacity 0.2s; }
+    body.dark-mode .textarea-wrapper > i { color: var(--primary-dark); }
+    
+    /* Mới: Quick Paste Button */
+    .quick-paste-btn { position: absolute; right: 20px; top: 20px; background: rgba(58, 95, 208, 0.1); color: var(--primary-light); border: 1px solid rgba(58, 95, 208, 0.2); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; z-index: 5; }
+    .quick-paste-btn:hover { background: var(--primary-light); color: white; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(58, 95, 208, 0.2); }
+    body.dark-mode .quick-paste-btn { background: rgba(109, 142, 255, 0.1); color: var(--primary-dark); border-color: rgba(109, 142, 255, 0.2); }
+    body.dark-mode .quick-paste-btn:hover { background: var(--primary-dark); color: #0b0f1a; }
+
+    textarea { width: 100%; height: 180px; padding: 24px 24px 24px 64px; border: 2px solid var(--border-light); border-radius: 24px; font-family: 'Inter', monospace; font-size: 15px; line-height: 1.7; background-color: var(--surface-light); resize: vertical; outline: none; transition: var(--transition); color: var(--text-light); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02); scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    textarea::-webkit-scrollbar { width: 8px; } textarea::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    textarea:focus { border-color: var(--primary-light); box-shadow: 0 0 0 5px rgba(58, 95, 208, 0.15), inset 0 2px 6px rgba(0, 0, 0, 0.03); }
+    body.dark-mode textarea { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); scrollbar-color: #475569 transparent; }
+    body.dark-mode textarea::-webkit-scrollbar-thumb { background-color: #475569; }
+    body.dark-mode textarea:focus { border-color: var(--primary-dark); box-shadow: 0 0 0 5px rgba(109, 142, 255, 0.15); }
+    textarea::placeholder { color: #9fb0d0; }
+    body.dark-mode textarea::placeholder { color: #6a7da0; }
+
+    /* ---------- BUTTONS (general) ---------- */
+    .button-strip { display: flex; gap: 16px; margin-top: 24px; justify-content: center; flex-wrap: wrap; }
+    .btn { border: none; padding: 14px 32px; border-radius: 60px; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: var(--transition); background-color: var(--surface-light); border: 1px solid var(--border-light); color: var(--text-light); letter-spacing: 0.3px; box-shadow: var(--shadow-sm); }
+    .btn-primary { background: var(--primary-gradient); border: none; color: white; box-shadow: 0 8px 20px -8px #3a5fd0; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 24px -8px #2b4bb0; }
+    .btn-outline:hover { background-color: #e5efff; border-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 10px 20px -10px rgba(58, 95, 208, 0.2); color: var(--primary-light); }
+    body.dark-mode .btn { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .btn-primary { background: linear-gradient(145deg, #4a70e0, #6d8eff); color: #0b0f1a; box-shadow: 0 8px 20px -8px #1c3b8a; }
+    body.dark-mode .btn-primary:hover { background: linear-gradient(145deg, #5c7ee5, #7f9aff); }
+    body.dark-mode .btn-outline:hover { background-color: #2c3857; border-color: var(--primary-dark); color: var(--primary-dark); }
+    
+    .btn-text-danger { background: transparent; border: none; color: #d9534f; font-weight: 600; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 40px; transition: var(--transition); }
+    .btn-text-danger:hover { background: #feeae9; color: #c44542; }
+    body.dark-mode .btn-text-danger { color: #ff8a7a; }
+    body.dark-mode .btn-text-danger:hover { background: rgba(255, 138, 122, 0.1); color: #ff9e91; }
+
+    /* ---------- SUMMARY SECTION ---------- */
+    .summary-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 42px 0 22px; gap: 16px; }
+    .summary-header h2 { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: var(--text-light); }
+    body.dark-mode .summary-header h2 { color: var(--text-dark); }
+    .summary-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    
+    .action-btn { background-color: var(--surface-light); border: 1px solid var(--border-light); border-radius: 40px; padding: 10px 20px; font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: var(--transition); color: var(--text-light); box-shadow: var(--shadow-sm); }
+    .action-btn:hover { background-color: #e5efff; border-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 10px 18px -10px rgba(58, 95, 208, 0.3); color: var(--primary-light); }
+    body.dark-mode .action-btn { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .action-btn:hover { background-color: #2c3857; border-color: var(--primary-dark); color: var(--primary-dark); }
+
+    /* ---------- CUSTOM DROPDOWN (FORMAT) ---------- */
+    .custom-dropdown { position: relative; display: inline-block; }
+    .dropdown-menu { position: absolute; top: calc(100% + 8px); left: 0; background: var(--surface-light); border: 1px solid var(--border-light); border-radius: 16px; box-shadow: var(--shadow-lg); z-index: 100; min-width: 240px; overflow: hidden; transition: opacity 0.2s, transform 0.2s; padding: 8px 0; }
+    .dropdown-menu.hidden { opacity: 0; pointer-events: none; transform: translateY(-10px); }
+    body.dark-mode .dropdown-menu { background: var(--surface-dark); border-color: var(--border-dark); box-shadow: 0 12px 32px rgba(0,0,0,0.5); }
+    .dropdown-item { padding: 12px 20px; font-size: 14.5px; font-weight: 500; color: var(--text-light); cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 10px; }
+    .dropdown-item i { width: 16px; opacity: 0; transition: 0.2s; color: var(--primary-light); }
+    .dropdown-item.active i { opacity: 1; }
+    .dropdown-item:hover { background: #eef3ff; color: var(--primary-light); }
+    .dropdown-item.active { background: #e5efff; color: var(--primary-light); font-weight: 600; border-left: 3px solid var(--primary-light); }
+    body.dark-mode .dropdown-item { color: var(--text-dark); }
+    body.dark-mode .dropdown-item i { color: var(--primary-dark); }
+    body.dark-mode .dropdown-item:hover { background: #2f3a5c; color: var(--primary-dark); }
+    body.dark-mode .dropdown-item.active { background: #2a3553; color: var(--primary-dark); border-left-color: var(--primary-dark); }
+
+    .summary-card { background-color: var(--surface-light); border-radius: 24px; padding: 28px 32px; border: 1px solid var(--border-light); margin-bottom: 36px; font-size: 17px; line-height: 1.8; color: var(--text-light); border-left: 6px solid var(--primary-light); box-shadow: inset 0 2px 10px rgba(0,0,0,0.01), var(--shadow-sm); max-height: 400px; overflow-y: auto; white-space: normal; word-break: break-word; transition: var(--transition); scrollbar-width: thin; }
+    .summary-card::-webkit-scrollbar { width: 8px; } .summary-card::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    .summary-card:hover { box-shadow: var(--shadow-md); }
+    body.dark-mode .summary-card { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); border-left-color: var(--primary-dark); }
+    body.dark-mode .summary-card::-webkit-scrollbar-thumb { background-color: #475569; }
+
+    /* ---------- STATS ---------- */
+    .stats-row { display: flex; align-items: center; justify-content: space-between; margin: 0 0 24px 0; flex-wrap: wrap; gap: 16px; }
+    .stats-badge { background: var(--surface-light); border-radius: 60px; padding: 12px 28px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: var(--text-light); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); }
+    .abnormal-badge { background: linear-gradient(145deg, #feeae9, #fef2f0); border-color: #f5bcbc; color: var(--abnormal-light); }
+    body.dark-mode .abnormal-badge { background: #3b2c2c; border-color: #a56363; color: var(--abnormal-dark); }
+    body.dark-mode .stats-badge { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    
+    .toggle-table-btn { background: var(--surface-light); border: 1px solid var(--border-light); border-radius: 60px; padding: 14px 32px; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 12px; cursor: pointer; transition: var(--transition); margin-bottom: 24px; color: var(--text-light); box-shadow: var(--shadow-sm); }
+    .toggle-table-btn:hover { background-color: #e5efff; border-color: var(--primary-light); transform: translateY(-2px); color: var(--primary-light); }
+    body.dark-mode .toggle-table-btn { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .toggle-table-btn:hover { background-color: #2c3857; border-color: var(--primary-dark); color: var(--primary-dark); }
+    
+    .selection-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0 20px; padding: 12px 0; }
+    .tool-btn { background-color: var(--surface-light); border: 1px solid var(--border-light); border-radius: 40px; padding: 10px 24px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; transition: var(--transition); color: var(--text-light); box-shadow: var(--shadow-sm); }
+    .tool-btn:hover { background-color: #e5efff; border-color: var(--primary-light); transform: translateY(-2px); color: var(--primary-light); }
+    body.dark-mode .tool-btn { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .tool-btn:hover { background-color: #2c3857; border-color: var(--primary-dark); color: var(--primary-dark); }
+    .selected-count-badge { background: var(--primary-gradient); color: white; padding: 8px 20px; border-radius: 60px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; margin-left: auto; box-shadow: 0 4px 10px -2px #3a5fd0; }
+    body.dark-mode .selected-count-badge { background: linear-gradient(145deg, #4a70e0, #6d8eff); color: #0b0f1a; }
+    
+    /* ---------- TABLE ---------- */
+    .table-container { border-radius: 24px; background-color: var(--surface-light); border: 1px solid var(--border-light); overflow: hidden; margin-top: 8px; transition: var(--transition); box-shadow: var(--shadow-md); }
+    body.dark-mode .table-container { background-color: var(--surface-dark); border-color: var(--border-dark); }
+    .table-scroll { overflow-x: auto; max-height: 500px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    .table-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    body.dark-mode .table-scroll::-webkit-scrollbar-thumb { background: #475569; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 1000px; text-align: left; }
+    th { background: #f8fafc; color: #475569; font-weight: 700; padding: 18px 16px; border-bottom: 2px solid var(--border-light); position: sticky; top: 0; z-index: 10; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    body.dark-mode th { background: #1a202c; color: #94a3b8; border-bottom-color: var(--border-dark); }
+    td { padding: 16px; border-bottom: 1px solid var(--border-light); color: var(--text-light); cursor: pointer; transition: background 0.15s; }
+    body.dark-mode td { border-bottom-color: var(--border-dark); color: var(--text-dark); }
+    
+    tbody tr:hover td { background-color: #f1f5f9; }
+    body.dark-mode tbody tr:hover td { background-color: #2d3748; }
+    
+    /* Mới: Highlight dòng bất thường */
+    tbody tr.row-abnormal td { background-color: var(--abnormal-bg-light); }
+    tbody tr.row-abnormal:hover td { background-color: #ffe4e4; }
+    body.dark-mode tbody tr.row-abnormal td { background-color: var(--abnormal-bg-dark); }
+    body.dark-mode tbody tr.row-abnormal:hover td { background-color: #4a3232; }
+
+    tbody tr.selected td { background-color: #e0e7ff; border-bottom-color: #c7d2fe; }
+    body.dark-mode tbody tr.selected td { background-color: #2e3f6b; border-bottom-color: #4e6aa8; }
+    
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 40px; font-size: 12.5px; font-weight: 600; border-left-width: 3px; border-left-style: solid; }
+    .status-normal { background-color: #e1f7ea; color: var(--normal-light); border-left-color: var(--normal-light); }
+    body.dark-mode .status-normal { background-color: #1d4a2d; color: var(--normal-dark); border-left-color: var(--normal-dark); }
+    .status-abnormal { background-color: #fee2dd; color: var(--abnormal-light); border-left-color: var(--abnormal-light); }
+    body.dark-mode .status-abnormal { background-color: #5e3535; color: var(--abnormal-dark); border-left-color: var(--abnormal-dark); }
+    .status-unknown { background-color: #f1f5f9; color: var(--unknown-light); border-left-color: var(--unknown-light); }
+    body.dark-mode .status-unknown { background-color: #334155; color: var(--unknown-dark); border-left-color: var(--unknown-dark); }
+    .abnormal-value { color: #d9534f; font-weight: 700; }
+    body.dark-mode .abnormal-value { color: #ff8a7a; }
+    
+    .hidden { display: none !important; }
+
+    /* ---------- TOAST ---------- */
+    .toast-message { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 16px 32px; border-radius: 60px; font-weight: 500; display: flex; align-items: center; gap: 12px; z-index: 9999; animation: toastSlide 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1); border: 1px solid #334155; font-size: 15px; box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5); }
+    body.dark-mode .toast-message { background: #cbd5e1; color: #0f172a; border-color: #94a3b8; }
+    @keyframes toastSlide { from { opacity: 0; transform: translateX(-50%) translateY(40px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    .toast-message.fade-out { opacity: 0; transform: translateX(-50%) translateY(30px); transition: all 0.3s ease; }
+
+    /* ---------- TRANSFER SECTION (Bottom Right) ---------- */
+    .transfer-section { position: fixed; bottom: 24px; right: 24px; z-index: 1050; padding: 10px 20px; background: var(--surface-light); border-radius: 60px; border: 1px solid var(--border-light); font-size: 13.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); transition: var(--transition); }
+    .transfer-section a { padding: 6px 14px; font-size: 12.5px; background: rgba(58, 95, 208, 0.1); border-radius: 40px; font-weight: 700; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--primary-light); }
+    .transfer-section a:hover { background: var(--primary-light); color: white; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(58, 95, 208, 0.3); }
+    body.dark-mode .transfer-section { background: var(--surface-dark); border-color: var(--border-dark); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); }
+    body.dark-mode .transfer-section a { background: rgba(109, 142, 255, 0.15); color: var(--primary-dark); }
+    body.dark-mode .transfer-section a:hover { background: var(--primary-dark); color: #0b0f1a; }
+
+    /* ---------- QUICK COPY ---------- */
+    .quick-copy-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 48px; margin-bottom: 24px; flex-wrap: wrap; }
+    .quick-copy-toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; background-color: var(--surface-light); border: 1px solid var(--border-light); border-radius: 60px; padding: 14px 28px; transition: var(--transition); box-shadow: var(--shadow-sm); }
+    .quick-copy-toggle:hover { background-color: #e5efff; border-color: var(--primary-light); color: var(--primary-light); transform: translateY(-2px); }
+    body.dark-mode .quick-copy-toggle { background-color: var(--surface-dark); border-color: var(--border-dark); }
+    body.dark-mode .quick-copy-toggle:hover { background-color: #2c3857; border-color: var(--primary-dark); color: var(--primary-dark); }
+    .quick-copy-toggle h3 { font-size: 17px; font-weight: 600; margin: 0; }
+    .btn-add-quick-copy { background: var(--surface-light); color: var(--primary-light); border: 1px dashed var(--primary-light); border-radius: 60px; padding: 12px 24px; font-size: 14.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: var(--transition); }
+    .btn-add-quick-copy:hover { background: var(--primary-light); color: white; }
+    body.dark-mode .btn-add-quick-copy { background: var(--surface-dark); color: var(--primary-dark); border-color: var(--primary-dark); }
+    body.dark-mode .btn-add-quick-copy:hover { background: var(--primary-dark); color: #0f141e; }
+    
+    .quick-copy-grid { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: flex-start; }
+    .quick-copy-table { flex: 1 1 300px; background-color: var(--surface-light); border-radius: 20px; border: 1px solid var(--border-light); border-collapse: collapse; overflow: hidden; font-size: 14.5px; width: 100%; box-shadow: var(--shadow-sm); transition: var(--transition); }
+    .quick-copy-table:hover { box-shadow: var(--shadow-md); }
+    body.dark-mode .quick-copy-table { background-color: var(--surface-dark); border-color: var(--border-dark); }
+    .quick-copy-table caption { font-size: 15px; font-weight: 700; background: var(--primary-gradient); color: white; padding: 14px 20px; text-align: left; caption-side: top; text-transform: uppercase; letter-spacing: 0.5px; }
+    .quick-copy-table td { padding: 16px 20px; border-bottom: 1px solid var(--border-light); color: var(--text-light); }
+    body.dark-mode .quick-copy-table td { border-bottom-color: var(--border-dark); color: var(--text-dark); }
+    .quick-copy-table tr:last-child td { border-bottom: none; }
+    .content-cell { width: 75%; word-break: break-word; white-space: pre-line; cursor: pointer; transition: 0.2s; }
+    .content-cell:hover { background-color: #f8fafc; color: var(--primary-light); box-shadow: inset 4px 0 0 var(--primary-light); }
+    body.dark-mode .content-cell:hover { background-color: #1e293b; color: var(--primary-dark); box-shadow: inset 4px 0 0 var(--primary-dark); }
+    .copy-cell { width: 25%; text-align: right; }
+    .copy-quick-btn { background-color: var(--surface-light); border: 1px solid var(--border-light); border-radius: 40px; padding: 8px 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: var(--transition); color: var(--text-light); }
+    .copy-quick-btn:hover { background-color: #e5efff; border-color: var(--primary-light); color: var(--primary-light); transform: scale(1.05); }
+    body.dark-mode .copy-quick-btn { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .copy-quick-btn:hover { background-color: #2c3857; border-color: var(--primary-dark); color: var(--primary-dark); }
+    .expand-collapse-btn { background: transparent; border: none; color: var(--primary-light); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 6px; transition: var(--transition); border-radius: 8px; }
+    .expand-collapse-btn:hover { background: #f1f5f9; }
+    body.dark-mode .expand-collapse-btn { color: var(--primary-dark); }
+    body.dark-mode .expand-collapse-btn:hover { background: #334155; }
+
+    /* ---------- MODALS ---------- */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(5px); transition: opacity 0.3s; padding: 16px; }
+    .modal-overlay.hidden { opacity: 0; pointer-events: none; }
+    .modal-box { background: var(--surface-light); border-radius: 28px; padding: 32px; width: 100%; max-width: 520px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-light); transform: scale(1) translateY(0); transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1); display: flex; flex-direction: column; max-height: 90vh; }
+    body.dark-mode .modal-box { background: var(--surface-dark); border-color: var(--border-dark); }
+    .modal-overlay.hidden .modal-box { transform: scale(0.95) translateY(20px); }
+    .modal-box h3 { margin-bottom: 24px; color: var(--text-light); font-size: 22px; font-weight: 700; flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
+    body.dark-mode .modal-box h3 { color: var(--text-dark); }
+    .modal-body { overflow-y: auto; flex-grow: 1; padding-right: 8px; margin-bottom: 8px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    .modal-body::-webkit-scrollbar { width: 8px; } .modal-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    body.dark-mode .modal-body::-webkit-scrollbar-thumb { background: #475569; }
+
+    .modal-input-group { margin-bottom: 20px; }
+    .modal-input-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14.5px; color: var(--text-light); }
+    body.dark-mode .modal-input-group label { color: var(--text-dark); }
+    .modal-input-group select, .modal-input-group input, .modal-input-group textarea { width: 100%; padding: 14px 20px; border-radius: 16px; border: 1px solid var(--border-light); background: var(--bg-light); color: var(--text-light); font-family: 'Inter', sans-serif; font-size: 15px; outline: none; transition: 0.2s; }
+    .modal-input-group textarea { height: 140px; resize: vertical; }
+    .modal-input-group select:focus, .modal-input-group input:focus, .modal-input-group textarea:focus { border-color: var(--primary-light); background: var(--surface-light); box-shadow: 0 0 0 3px rgba(58,95,208,0.1); }
+    body.dark-mode .modal-input-group select, body.dark-mode .modal-input-group input, body.dark-mode .modal-input-group textarea { background-color: var(--bg-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .modal-input-group select:focus, body.dark-mode .modal-input-group input:focus, body.dark-mode .modal-input-group textarea:focus { border-color: var(--primary-dark); background: var(--surface-dark); box-shadow: 0 0 0 3px rgba(109,142,255,0.1); }
+
+    /* Modal Mới: Box Thêm viết tắt */
+    .add-abbr-box { background: var(--bg-light); border: 2px dashed var(--border-light); border-radius: 20px; padding: 20px; margin-bottom: 24px; transition: var(--transition); }
+    .add-abbr-box:focus-within { border-color: var(--primary-light); background: #f0f4fa; }
+    body.dark-mode .add-abbr-box { background: rgba(0, 0, 0, 0.2); border-color: var(--border-dark); }
+    body.dark-mode .add-abbr-box:focus-within { border-color: var(--primary-dark); }
+    
+    .add-abbr-box-title { font-size: 15px; font-weight: 700; color: var(--text-light); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    body.dark-mode .add-abbr-box-title { color: var(--text-dark); }
+    .add-abbr-inputs { display: flex; gap: 12px; width: 100%; margin-bottom: 16px; }
+    .add-abbr-input { flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-light); background: var(--surface-light); color: var(--text-light); font-size: 14.5px; outline: none; transition: 0.2s; }
+    .add-abbr-input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(58,95,208,0.1); }
+    body.dark-mode .add-abbr-input { background: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .add-abbr-input:focus { border-color: var(--primary-dark); box-shadow: 0 0 0 3px rgba(109,142,255,0.1); }
+    
+    .btn-add-abbr { background: var(--primary-light); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14.5px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+    .btn-add-abbr:hover { background: #2b4bb0; }
+    body.dark-mode .btn-add-abbr { background: var(--primary-dark); color: #0b0f1a; }
+    body.dark-mode .btn-add-abbr:hover { background: #5c7ee5; }
+
+    .abbr-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; background: var(--surface-light); padding: 12px 16px; border-radius: 16px; border: 1px solid var(--border-light); transition: var(--transition); }
+    body.dark-mode .abbr-row { background: var(--surface-dark); border-color: var(--border-dark); }
+    .abbr-row-label { flex: 1.2; margin: 0; font-weight: 600; font-size: 14.5px; color: var(--text-light); word-break: break-word; line-height: 1.4; }
+    .abbr-row-label.custom-label { color: var(--primary-light); }
+    body.dark-mode .abbr-row-label { color: var(--text-dark); }
+    body.dark-mode .abbr-row-label.custom-label { color: var(--primary-dark); }
+    .abbr-row-input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-light); background: var(--bg-light); color: var(--text-light); font-size: 14px; outline: none; transition: 0.2s; }
+    .abbr-row-input:focus { border-color: var(--primary-light); background: var(--surface-light); }
+    body.dark-mode .abbr-row-input { background: var(--bg-dark); border-color: var(--border-dark); color: var(--text-dark); }
+    body.dark-mode .abbr-row-input:focus { border-color: var(--primary-dark); background: var(--surface-dark); }
+    .delete-abbr-btn { background: rgba(217, 83, 79, 0.1); border: none; color: #d9534f; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; border-radius: 12px; transition: 0.2s; flex-shrink: 0; }
+    .delete-abbr-btn:hover { background: #d9534f; color: white; transform: scale(1.05); }
+    body.dark-mode .delete-abbr-btn { background: rgba(255, 138, 122, 0.1); color: #ff8a7a; }
+    body.dark-mode .delete-abbr-btn:hover { background: #ff8a7a; color: #0b0f1a; }
+    .spacer-btn { width: 40px; flex-shrink: 0; }
+
+    /* ---------- CONTEXT MENU ---------- */
+    .custom-context-menu { position: absolute; background: var(--surface-light); border: 1px solid var(--border-light); box-shadow: var(--shadow-md); border-radius: 16px; padding: 8px 0; min-width: 160px; z-index: 1000; overflow: hidden; }
+    body.dark-mode .custom-context-menu { background: var(--surface-dark); border-color: var(--border-dark); }
+    .menu-item { padding: 12px 20px; font-size: 14.5px; font-weight: 500; color: var(--text-light); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+    .menu-item:hover { background: #f1f5f9; color: var(--primary-light); }
+    body.dark-mode .menu-item { color: var(--text-dark); }
+    body.dark-mode .menu-item:hover { background: #2d3748; color: var(--primary-dark); }
+    .menu-item.delete:hover { color: #d9534f; background: #feeae9; }
+    body.dark-mode .menu-item.delete:hover { color: #ff8a7a; background: #3b2c2c; }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 768px) {
+      .container { padding: 24px; border-radius: 24px; }
+      .app-header { flex-direction: column; text-align: center; }
+      .header-actions { width: 100%; justify-content: center; margin-top: 8px; }
+      .summary-header { flex-direction: column; align-items: flex-start; }
+      .summary-actions { width: 100%; justify-content: space-between; }
+      .action-btn { flex: 1; justify-content: center; }
+      .quick-copy-header { flex-direction: column; align-items: flex-start; }
+      .btn-add-quick-copy { width: 100%; justify-content: center; }
+      .transfer-section { right: 50%; transform: translateX(50%); bottom: 16px; width: max-content; }
+    }
+    @media (max-width: 500px) {
+      .button-strip { flex-direction: column; }
+      .btn { width: 100%; }
+      .stats-row { flex-direction: column; align-items: stretch; }
+      .stats-badge { justify-content: center; }
+      .selection-toolbar { flex-direction: column; align-items: stretch; }
+      .selected-count-badge { justify-content: center; margin-top: 8px; }
+      .add-abbr-inputs { flex-direction: column; }
+      .abbr-row { flex-wrap: wrap; }
+      .abbr-row-input { width: calc(100% - 52px); flex: none; }
+      .abbr-row-label { width: 100%; flex: none; margin-bottom: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="app-header">
+      <div class="header-left">
+        <div class="icon"><i class="fas fa-stethoscope"></i></div>
+        <h1>TÓM TẮT CẬN LÂM SÀNG</h1>
+      </div>
+      <div class="header-actions">
+        <div class="icon-btn" id="autoToggleBtn" title="Tự động tóm tắt khi dán"><i class="fas fa-robot"></i></div>
+        <div class="icon-btn" id="settingsBtn" title="Cài đặt viết tắt các chỉ số"><i class="fas fa-cog"></i></div>
+        <div class="icon-btn" id="themeToggle" title="Chuyển giao diện sáng - tối"><i class="fas fa-sun"></i></div>
+      </div>
+    </div>
+
+    <div class="input-section">
+      <div class="input-label">
+        <span><i class="fas fa-keyboard"></i> Chỉ số đầu vào</span>
+        <span class="stats-badge" id="rowCountBadge" style="padding: 6px 16px; font-size: 13.5px;"><i class="fas fa-database"></i> 0 chỉ số</span>
+      </div>
+      <div class="textarea-wrapper">
+        <i class="fas fa-table"></i>
+        <button id="quickPasteBtn" class="quick-paste-btn" title="Dán dữ liệu từ Clipboard"><i class="fas fa-paste"></i> Dán nhanh</button>
+        <textarea id="dataInput" placeholder="Ví dụ:&#10;1	(H01) Số lượng hồng cầu	4.60	4 - 5.8	x10^12/lít&#10;2	(H02) Huyết sắc tố	90	140 - 160	g/L&#10;3	(H03) Số lượng tiểu cầu	420	150 - 400	x10^9/L&#10;4	(B04) Glucose	6.5	4.1-5.9	mmol/L"></textarea>
+      </div>
+      <div class="button-strip">
+        <button class="btn btn-primary" id="summarizeBtn"><i class="fas fa-flask"></i> Tóm tắt</button>
+        <button class="btn btn-outline" id="clearBtn"><i class="fas fa-trash-alt"></i> Làm mới</button>
+      </div>
+    </div>
+
+    <div class="summary-header">
+      <h2><i class="fas fa-clipboard-check" style="color: var(--primary-light);"></i> Kết quả tóm tắt</h2>
+      <div class="summary-actions">
+        <div class="action-btn" id="copySummaryBtn" style="background: var(--primary-light); color: white; border:none;"><i class="far fa-copy"></i> Copy</div>
+
+        <div class="custom-dropdown" id="formatDropdown">
+          <div class="action-btn" id="formatDropdownToggle">
+            <i class="fas fa-list-ul"></i> Định dạng <i class="fas fa-chevron-down" style="font-size: 11px; margin-left: 2px;"></i>
+          </div>
+          <div class="dropdown-menu hidden" id="formatDropdownMenu">
+            <div class="dropdown-item" data-value="comma"><i class="fas fa-check"></i> Dấu phẩy (,)</div>
+            <div class="dropdown-item" data-value="semicolon"><i class="fas fa-check"></i> Chấm phẩy (;)</div>
+            <div class="dropdown-item" data-value="newline"><i class="fas fa-check"></i> Xuống dòng</div>
+          </div>
+        </div>
+        
+        <div class="action-btn" id="toggleUnitBtn"><i class="fas fa-eye-slash" id="unitIcon"></i><span id="unitBtnText">Đơn vị</span></div>
+        <div class="action-btn" id="toggleAbbrBtn"><i class="fas fa-font" id="abbrIcon"></i><span id="abbrBtnText">Tên đủ</span></div>
+      </div>
+    </div>
+    
+    <div class="summary-card" id="summaryText">Chưa có dữ liệu. Vui lòng dán kết quả xét nghiệm vào ô phía trên.</div>
+
+    <div class="stats-row">
+      <div class="stats-badge" id="totalIndicators"><i class="fas fa-calculator"></i> Tổng: 0</div>
+      <div class="stats-badge abnormal-badge" id="abnormalIndicators"><i class="fas fa-exclamation-triangle"></i> Bất thường: 0</div>
+    </div>
+
+    <div>
+      <div class="toggle-table-btn" id="toggleTableBtn"><i class="fas fa-chevron-right" id="toggleIcon"></i> Xem bảng chi tiết</div>
+    </div>
+    
+    <div id="selectionToolbar" class="selection-toolbar hidden animate-fade-in">
+      <button class="tool-btn" id="selectMainBtn"><i class="fas fa-star"></i> Chỉ số chính</button>
+      <button class="tool-btn" id="selectAbnormalBtn"><i class="fas fa-exclamation-triangle"></i> Chỉ bất thường</button>
+      <button class="tool-btn" id="selectAllBtn"><i class="fas fa-check-double"></i> Chọn hết</button>
+      <button class="tool-btn" id="deselectAllBtn"><i class="fas fa-times"></i> Bỏ chọn</button>
+      <span class="selected-count-badge" id="selectedCountBadge"><i class="fas fa-check-circle"></i> Đã chọn: 0/0</span>
+    </div>
+    
+    <div id="tableContainer" class="table-container hidden animate-fade-in">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px; text-align:center;">Chọn</th>
+              <th>STT</th>
+              <th>Tên gốc</th>
+              <th>Tên hiển thị</th>
+              <th>Giá trị</th>
+              <th>Tham chiếu</th>
+              <th>Đơn vị</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="quick-copy-header">
+      <div class="quick-copy-toggle" id="toggleQuickCopy">
+        <i class="fas fa-chevron-right" id="quickCopyIcon"></i>
+        <h3>Mẫu Copy Nhanh</h3>
+      </div>
+      <button class="btn-add-quick-copy" id="btnAddQuickCopy"><i class="fas fa-plus"></i> Thêm mẫu</button>
+    </div>
+    
+    <div id="quickCopySection" class="quick-copy-section hidden animate-fade-in">
+      <div class="quick-copy-grid" id="quickCopyGrid">
+        <table class="quick-copy-table default-table">
+          <caption>Liều dùng thuốc</caption>
+          <tr>
+            <td class="content-cell">Uống 1 viên/lần * 1 lần/ngày vào buổi sáng * 30 ngày [uống 1 viên/ngày]</td>
+            <td class="copy-cell"><button class="copy-quick-btn"><i class="far fa-copy"></i> Copy</button></td>
+          </tr>
+          <tr>
+            <td class="content-cell">Uống 2 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 4 viên/ngày]</td>
+            <td class="copy-cell"><button class="copy-quick-btn"><i class="far fa-copy"></i> Copy</button></td>
+          </tr>
+          <tr>
+            <td class="content-cell">Uống 1 viên/lần * 2 lần/ngày sáng chiều sau ăn * 10 ngày [uống 2 viên/ngày]</td>
+            <td class="copy-cell"><button class="copy-quick-btn"><i class="far fa-copy"></i> Copy</button></td>
+          </tr>
+        </table>
+        <table class="quick-copy-table default-table">
+          <caption>Toàn thân</caption>
+          <tr>
+            <td class="content-cell" style="white-space: pre-line;">Bệnh nhân tỉnh, tiếp xúc được.
+Không nôn, không sốt.
+Da, niêm mạc hồng nhạt.
+Tim nhịp đều T1T2 rõ. Phổi không rale.</td>
+            <td class="copy-cell"><button class="copy-quick-btn"><i class="far fa-copy"></i> Copy</button></td>
+          </tr>
+          <tr>
+            <td class="content-cell" style="white-space: pre-line;">Bệnh nhân có tiền sử tiểu đường, tăng HA.
+Hiện tại: Tỉnh, đau mỏi gáy, chóng mặt.
+Tim nhịp đều, Phổi thông khí tốt.</td>
+            <td class="copy-cell"><button class="copy-quick-btn"><i class="far fa-copy"></i> Copy</button></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="transfer-section">
+    <i class="fas fa-location-arrow"></i>
+    <strong>Y lệnh nội trú</strong>
+    <a href="https://qtrungyb.github.io/ttcls2/" target="_blank">MỞ <i class="fas fa-external-link-alt"></i></a>
+  </div>
+
+  <!-- Modal Thêm/Sửa Mẫu Quick Copy -->
+  <div id="itemModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3 id="modalTitle"><i class="fas fa-edit" style="color: var(--primary-light);"></i> Thêm Mẫu Mới</h3>
+      <div class="modal-body">
+        <div class="modal-input-group">
+          <label>Nhóm (Chuyên khoa/Loại)</label>
+          <select id="modalCategorySelect"></select>
+          <input type="text" id="modalCategoryInput" placeholder="Nhập tên nhóm mới..." style="display: none; margin-top: 12px;">
+        </div>
+        <div class="modal-input-group">
+          <label>Nội dung</label>
+          <textarea id="modalContent" placeholder="Nhập đoạn văn bản cần copy nhanh..."></textarea>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px;">
+        <button class="btn btn-outline" id="modalCancel">Hủy</button>
+        <button class="btn btn-primary" id="modalSave">Lưu Lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cài Đặt Viết Tắt -->
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 600px;">
+      <h3><i class="fas fa-cog" style="color: var(--primary-light);"></i> Quản lý Viết tắt</h3>
+      
+      <div class="add-abbr-box">
+        <div class="add-abbr-box-title"><i class="fas fa-plus-circle"></i> Thêm mới</div>
+        <div class="add-abbr-inputs">
+          <input type="text" id="newAbbrKey" class="add-abbr-input" placeholder="Tên gốc (VD: Glucose)">
+          <input type="text" id="newAbbrValue" class="add-abbr-input" placeholder="Viết tắt (VD: Glu)">
+        </div>
+        <button class="btn-add-abbr" id="btnAddAbbr"><i class="fas fa-check"></i> Lưu chỉ số này</button>
+      </div>
+
+      <div style="font-size: 14px; font-weight: 600; color: var(--text-light); margin-bottom: 12px;">
+        Danh sách hiện tại <span style="font-size: 12px; color: #94a3b8; font-weight: normal; margin-left: 8px;">(Xóa rỗng để dùng tên gốc)</span>
+      </div>
+
+      <div class="modal-body" id="abbrInputsContainer" style="padding-right: 12px;"></div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); flex-wrap: wrap; gap: 16px;">
+        <button class="btn-text-danger" id="btnResetAbbr" style="padding: 8px 12px;"><i class="fas fa-undo"></i> Khôi phục mặc định</button>
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-outline" id="btnCancelSettings" style="padding: 10px 20px; font-size: 15px;">Hủy</button>
+          <button class="btn btn-primary" id="btnSaveSettings" style="padding: 10px 24px; font-size: 15px;">Xong</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="contextMenu" class="custom-context-menu hidden">
+    <div class="menu-item" id="menuEdit"><i class="fas fa-edit" style="width:16px;"></i> Chỉnh sửa</div>
+    <div class="menu-item delete" id="menuDelete"><i class="fas fa-trash-alt" style="width:16px;"></i> Xóa dòng</div>
+  </div>
+
+  <script>
+    (function() {
+      // 1. CONSTANTS & CONFIGURATION
+      const STORAGE_KEYS = { ABBR_MAP: 'customAbbrMap', SHOW_UNIT: 'showUnit', SHOW_ABBR: 'showAbbr', COPY_FORMAT: 'copyFormat', AUTO_SUMMARIZE: 'autoSummarize', THEME: 'theme', CUSTOM_QUICK_ITEMS: 'customQuickCopyItems' };
+      const SPECIAL_NAMES = ["Số lượng hồng cầu", "Huyết sắc tố", "Hematocrit", "Số lượng tiểu cầu", "Số lượng bạch cầu", "Tỷ lệ bạch cầu GR"];
+      const DEFAULT_ABBR_MAP = { "Số lượng hồng cầu": "HC", "Huyết sắc tố": "Hb", "Hematocrit": "HTC", "Số lượng tiểu cầu": "TC", "Số lượng bạch cầu": "BC", "Tỷ lệ bạch cầu GR": "N%" };
+
+      // 2. STATE
+      let currentAbbrMap = JSON.parse(localStorage.getItem(STORAGE_KEYS.ABBR_MAP)) || { ...DEFAULT_ABBR_MAP };
+      let showUnit = localStorage.getItem(STORAGE_KEYS.SHOW_UNIT) === 'true';
+      let showAbbr = localStorage.getItem(STORAGE_KEYS.SHOW_ABBR) !== 'false';
+      let copyFormat = localStorage.getItem(STORAGE_KEYS.COPY_FORMAT) || 'comma';
+      let autoSummarizeEnabled = localStorage.getItem(STORAGE_KEYS.AUTO_SUMMARIZE) !== 'false';
+      let currentRows = [], selectedIndices = [], customQuickItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM_QUICK_ITEMS)) || [];
+      let editingQuickId = null, contextMenuTargetId = null;
+
+      // 3. DOM ELEMENTS
+      const el = {
+        dataTextarea: document.getElementById('dataInput'), quickPasteBtn: document.getElementById('quickPasteBtn'),
+        summarizeBtn: document.getElementById('summarizeBtn'), clearBtn: document.getElementById('clearBtn'), copySummaryBtn: document.getElementById('copySummaryBtn'),
+        toggleUnitBtn: document.getElementById('toggleUnitBtn'), toggleAbbrBtn: document.getElementById('toggleAbbrBtn'), toggleTableBtn: document.getElementById('toggleTableBtn'),
+        tableContainer: document.getElementById('tableContainer'), toggleIcon: document.getElementById('toggleIcon'), selectionToolbar: document.getElementById('selectionToolbar'),
+        rowCountBadge: document.getElementById('rowCountBadge'), totalIndicatorsSpan: document.getElementById('totalIndicators'), abnormalIndicatorsSpan: document.getElementById('abnormalIndicators'),
+        selectMainBtn: document.getElementById('selectMainBtn'), selectAbnormalBtn: document.getElementById('selectAbnormalBtn'), selectAllBtn: document.getElementById('selectAllBtn'),
+        deselectAllBtn: document.getElementById('deselectAllBtn'), autoToggleBtn: document.getElementById('autoToggleBtn'), themeToggle: document.getElementById('themeToggle'),
+        settingsBtn: document.getElementById('settingsBtn'), settingsModal: document.getElementById('settingsModal'), btnCancelSettings: document.getElementById('btnCancelSettings'),
+        btnSaveSettings: document.getElementById('btnSaveSettings'), btnResetAbbr: document.getElementById('btnResetAbbr'), abbrInputsContainer: document.getElementById('abbrInputsContainer'),
+        newAbbrKey: document.getElementById('newAbbrKey'), newAbbrValue: document.getElementById('newAbbrValue'), btnAddAbbr: document.getElementById('btnAddAbbr'),
+        formatDropdownToggle: document.getElementById('formatDropdownToggle'), formatDropdownMenu: document.getElementById('formatDropdownMenu'), formatItems: document.querySelectorAll('.dropdown-item'),
+        unitIcon: document.getElementById('unitIcon'), unitBtnText: document.getElementById('unitBtnText'), abbrIcon: document.getElementById('abbrIcon'), abbrBtnText: document.getElementById('abbrBtnText'),
+        summaryText: document.getElementById('summaryText'), tableBody: document.getElementById('tableBody'), selectedCountBadge: document.getElementById('selectedCountBadge'),
+        quickCopyToggle: document.getElementById('toggleQuickCopy'), quickCopySection: document.getElementById('quickCopySection'), quickCopyIcon: document.getElementById('quickCopyIcon'),
+        quickCopyGrid: document.getElementById('quickCopyGrid'), btnAddQuickCopy: document.getElementById('btnAddQuickCopy'), itemModal: document.getElementById('itemModal'),
+        modalTitle: document.getElementById('modalTitle'), catSelect: document.getElementById('modalCategorySelect'), catInput: document.getElementById('modalCategoryInput'),
+        modalContent: document.getElementById('modalContent'), modalCancel: document.getElementById('modalCancel'), modalSave: document.getElementById('modalSave'),
+        contextMenu: document.getElementById('contextMenu'), menuEdit: document.getElementById('menuEdit'), menuDelete: document.getElementById('menuDelete')
+      };
+
+      // 4. UTILITIES
+      function escapeHtml(str) { return str ? str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) : ''; }
+      function showToast(msg, duration = 2500) {
+        document.querySelector('.toast-message')?.remove();
+        const t = document.createElement('div'); t.className = 'toast-message'; t.innerHTML = `<i class="fas fa-check-circle" style="color:#4ade80;"></i> ${msg}`;
+        document.body.appendChild(t); setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 400); }, duration);
+      }
+      function parseNumber(str) { const m = str?.replace(/,/g, '.').replace(/\s+/g, '').match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : NaN; }
+      function cleanName(raw) { const m = raw?.trim().replace(/^["']|["']$/g, '').match(/^\([^)]+\)\s*(.*)/); return m ? m[1].trim() : raw?.trim() || ''; }
+      function getStatus(valStr, rangeStr) {
+        let val = parseNumber(valStr); if (isNaN(val) || !rangeStr) return 'unknown';
+        let r = rangeStr.match(/(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/); if (r) return (val < parseNumber(r[1]) || val > parseNumber(r[2])) ? 'abnormal' : 'normal';
+        let le = rangeStr.match(/(<=|≤)\s*(\d+[.,]?\d*)/); if (le) return val <= parseNumber(le[2]) ? 'normal' : 'abnormal';
+        let l = rangeStr.match(/<\s*(\d+[.,]?\d*)/); if (l) return val < parseNumber(l[1]) ? 'normal' : 'abnormal';
+        let ge = rangeStr.match(/(>=|≥)\s*(\d+[.,]?\d*)/); if (ge) return val >= parseNumber(ge[1]) ? 'normal' : 'abnormal';
+        let g = rangeStr.match(/>\s*(\d+[.,]?\d*)/); if (g) return val > parseNumber(g[1]) ? 'normal' : 'abnormal'; return 'unknown';
+      }
+
+      // 5. CORE LOGIC
+      function parseInputToRows(input) {
+        return input.split(/\r?\n/).map(l => l.trim().split('\t').map(c => c.trim()).filter(c => c)).filter(cols => cols.length >= 3 && /^\d+$/.test(cols[0]))
+          .map(cols => ({ stt: cols[0], rawName: cols[1], cleanName: cleanName(cols[1]), value: cols[2], refRange: cols[3] || '', unit: cols[4] || '' }));
+      }
+      function getSummaryPartsArray(rows, forHtml = true) {
+        return rows.filter(r => r.value).map(r => {
+          let n = (showAbbr && currentAbbrMap[r.cleanName]) ? currentAbbrMap[r.cleanName] : r.cleanName;
+          let v = forHtml ? escapeHtml(r.value) : r.value;
+          if (forHtml && getStatus(r.value, r.refRange) === 'abnormal') v = `<span class="abnormal-value">${v}</span>`;
+          let u = (showUnit && r.unit) ? ` ${forHtml ? escapeHtml(r.unit) : r.unit}` : '';
+          let sep = ['T3', 'T4', 'TSH', 'Tg'].includes(n) ? ': ' : ' ';
+          return `${forHtml ? escapeHtml(n) : n}${sep}${v}${u}`;
+        });
+      }
+      function updateSummary() {
+        const sel = currentRows.filter((_, i) => selectedIndices.includes(i));
+        if (!sel.length) return el.summaryText.innerHTML = 'Chưa có dữ liệu.';
+        const parts = getSummaryPartsArray(sel, true);
+        if (!parts.length) return el.summaryText.innerHTML = 'Không tìm thấy chỉ số nào có giá trị.';
+        const sep = copyFormat === 'newline' ? '<br>' : (copyFormat === 'semicolon' ? '; ' : ', ');
+        el.summaryText.innerHTML = parts.join(sep);
+      }
+      function getSummaryPlainText() {
+        return getSummaryPartsArray(currentRows.filter((_, i) => selectedIndices.includes(i)), false)
+               .join(copyFormat === 'newline' ? '\n' : (copyFormat === 'semicolon' ? '; ' : ', '));
+      }
+      function updateStats() {
+        el.rowCountBadge.innerHTML = `<i class="fas fa-database"></i> ${currentRows.length} dòng`;
+        el.totalIndicatorsSpan.innerHTML = `<i class="fas fa-calculator"></i> Tổng: ${currentRows.length}`;
+        el.abnormalIndicatorsSpan.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Bất thường: ${currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length}`;
+        el.selectedCountBadge.innerHTML = `<i class="fas fa-check-circle"></i> Đã chọn: ${selectedIndices.length}/${currentRows.length}`;
+      }
+
+      // 6. TABLE
+      function renderTable() {
+        el.tableBody.innerHTML = currentRows.map((r, i) => {
+          const st = getStatus(r.value, r.refRange);
+          const stHtml = st === 'normal' ? '<span class="status-badge status-normal">Bình thường</span>' : st === 'abnormal' ? '<span class="status-badge status-abnormal">Bất thường</span>' : '<span class="status-badge status-unknown">Không rõ</span>';
+          const valCell = st === 'abnormal' ? `<span class="abnormal-value">${escapeHtml(r.value)}</span>` : escapeHtml(r.value);
+          const n = (showAbbr && currentAbbrMap[r.cleanName]) ? currentAbbrMap[r.cleanName] : r.cleanName;
+          const trClass = [selectedIndices.includes(i) ? 'selected' : '', st === 'abnormal' ? 'row-abnormal' : ''].join(' ').trim();
+          return `<tr class="${trClass}" data-idx="${i}">
+            <td style="text-align:center;"><input type="checkbox" class="row-select" data-index="${i}" ${selectedIndices.includes(i) ? 'checked' : ''}></td>
+            <td>${escapeHtml(r.stt)}</td><td>${escapeHtml(r.rawName)}</td><td>${escapeHtml(n)}</td><td>${valCell}</td><td>${escapeHtml(r.refRange)}</td><td>${escapeHtml(r.unit)}</td><td>${stHtml}</td>
+          </tr>`;
+        }).join('');
+        
+        document.querySelectorAll('.row-select').forEach(cb => cb.addEventListener('change', function(e) {
+          e.stopPropagation(); const i = parseInt(this.dataset.index);
+          if (this.checked && !selectedIndices.includes(i)) selectedIndices.push(i);
+          else selectedIndices = selectedIndices.filter(x => x !== i);
+          selectedIndices.sort((a,b) => a-b);
+          updateStats(); updateSummary(); highlightRows();
+        }));
+        document.querySelectorAll('#tableBody tr').forEach(tr => tr.addEventListener('click', function(e) {
+          const cb = this.querySelector('.row-select');
+          if (cb && e.target !== cb && !e.target.closest('.status-badge')) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+        }));
+        highlightRows(); updateStats();
+      }
+      function highlightRows() {
+        document.querySelectorAll('#tableBody tr').forEach(tr => {
+          const cb = tr.querySelector('.row-select');
+          if (cb) cb.checked ? tr.classList.add('selected') : tr.classList.remove('selected');
+        });
+      }
+      function syncSelection(indices) { selectedIndices = indices; document.querySelectorAll('.row-select').forEach(cb => cb.checked = indices.includes(parseInt(cb.dataset.index))); updateStats(); updateSummary(); highlightRows(); }
+
+      function performSummarize() {
+        const rows = parseInputToRows(el.dataTextarea.value);
+        if (!rows.length) { showToast('Không có dữ liệu hợp lệ'); currentRows=[]; selectedIndices=[]; renderTable(); updateSummary(); el.tableContainer.classList.add('hidden'); el.selectionToolbar.classList.add('hidden'); return; }
+        currentRows = rows;
+        const main = currentRows.reduce((a, r, i) => SPECIAL_NAMES.includes(r.cleanName) ? [...a, i] : a, []);
+        selectedIndices = main.length ? main : currentRows.map((_, i) => i);
+        renderTable(); updateSummary();
+        const txt = getSummaryPlainText(); if (txt) navigator.clipboard.writeText(txt).catch(()=>{});
+        el.tableContainer.classList.add('hidden'); el.selectionToolbar.classList.add('hidden');
+        el.toggleIcon.className = 'fas fa-chevron-right'; el.toggleTableBtn.innerHTML = '<i class="fas fa-chevron-right"></i> Xem bảng chi tiết';
+        showToast('Đã tóm tắt & sao chép vào Clipboard');
+      }
+
+      // 7. UI & MODALS
+      function updateUI() {
+        el.unitIcon.className = showUnit ? 'fas fa-eye' : 'fas fa-eye-slash'; el.unitBtnText.innerText = showUnit ? 'Ẩn Đ.vị' : 'Đơn vị';
+        el.abbrIcon.className = showAbbr ? 'fas fa-font' : 'fas fa-i'; el.abbrBtnText.innerText = showAbbr ? 'Tên đủ' : 'Viết tắt';
+        el.autoToggleBtn.classList.toggle('auto-active', autoSummarizeEnabled);
+        el.formatItems.forEach(i => i.classList.toggle('active', i.dataset.value === copyFormat));
+      }
+      function setTheme(isDark) { document.body.classList.toggle('dark-mode', isDark); el.themeToggle.querySelector('i').className = isDark ? 'fas fa-moon' : 'fas fa-sun'; localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light'); }
+
+      // Abbr Settings
+      let tempAbbr = {};
+      function renderAbbr() {
+        el.abbrInputsContainer.innerHTML = '';
+        Object.keys(DEFAULT_ABBR_MAP).forEach(k => {
+          el.abbrInputsContainer.innerHTML += `<div class="abbr-row"><label class="abbr-row-label">${escapeHtml(k)}</label><input type="text" class="abbr-row-input" data-key="${escapeHtml(k)}" value="${escapeHtml(tempAbbr[k] !== undefined ? tempAbbr[k] : DEFAULT_ABBR_MAP[k])}"><div class="spacer-btn"></div></div>`;
+        });
+        Object.keys(tempAbbr).forEach(k => {
+          if (!DEFAULT_ABBR_MAP.hasOwnProperty(k)) el.abbrInputsContainer.innerHTML += `<div class="abbr-row"><label class="abbr-row-label custom-label">${escapeHtml(k)}</label><input type="text" class="abbr-row-input" data-key="${escapeHtml(k)}" value="${escapeHtml(tempAbbr[k])}"><button class="delete-abbr-btn" data-key="${escapeHtml(k)}"><i class="fas fa-trash-alt"></i></button></div>`;
+        });
+      }
+      
+      // Quick Copy
+      function saveQuick() { localStorage.setItem(STORAGE_KEYS.CUSTOM_QUICK_ITEMS, JSON.stringify(customQuickItems)); renderQuick(); }
+      function renderQuick() {
+        document.querySelectorAll('.custom-table').forEach(t => t.remove());
+        const grps = customQuickItems.reduce((a, i) => { (a[i.category] = a[i.category] || []).push(i); return a; }, {});
+        Object.keys(grps).forEach(cat => {
+          const tbl = document.createElement('table'); tbl.className = 'quick-copy-table custom-table';
+          tbl.innerHTML = `<caption>${escapeHtml(cat)}</caption>` + grps[cat].map(i => `<tr class="custom-row" data-id="${i.id}"><td class="content-cell" data-text="${escapeHtml(i.content)}">${escapeHtml(i.content).replace(/\n/g, '<br>')}</td><td class="copy-cell"><button class="copy-quick-btn" data-text="${escapeHtml(i.content)}"><i class="far fa-copy"></i> Copy</button></td></tr>`).join('');
+          el.quickCopyGrid.appendChild(tbl);
+        });
+        document.querySelectorAll('.custom-table .copy-quick-btn, .custom-table .content-cell').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); const t = e.currentTarget.getAttribute('data-text'); if(t) navigator.clipboard.writeText(t).then(()=>showToast('Đã sao chép!')); }));
+        document.querySelectorAll('.custom-table .custom-row').forEach(tr => tr.addEventListener('contextmenu', e => { e.preventDefault(); contextMenuTargetId = tr.dataset.id; el.contextMenu.style.left=e.pageX+'px'; el.contextMenu.style.top=e.pageY+'px'; el.contextMenu.classList.remove('hidden'); }));
+      }
+
+      // 8. EVENTS
+      function bind() {
+        el.quickPasteBtn.addEventListener('click', async () => { try { el.dataTextarea.value = await navigator.clipboard.readText(); if(autoSummarizeEnabled) performSummarize(); showToast('Đã dán dữ liệu'); } catch(e) { showToast('Vui lòng dùng Ctrl+V'); }});
+        el.dataTextarea.addEventListener('paste', () => { if(autoSummarizeEnabled) setTimeout(performSummarize, 50); });
+        el.summarizeBtn.addEventListener('click', performSummarize);
+        el.clearBtn.addEventListener('click', () => { el.dataTextarea.value=''; currentRows=[]; selectedIndices=[]; renderTable(); el.summaryText.innerHTML='Chưa có dữ liệu.'; el.tableContainer.classList.add('hidden'); el.selectionToolbar.classList.add('hidden'); showToast('Đã làm mới'); });
+        el.copySummaryBtn.addEventListener('click', () => { const t = getSummaryPlainText(); if(t) navigator.clipboard.writeText(t).then(()=>showToast('Đã copy tóm tắt')); });
+        el.toggleUnitBtn.addEventListener('click', () => { showUnit=!showUnit; localStorage.setItem(STORAGE_KEYS.SHOW_UNIT, showUnit); updateUI(); if(currentRows.length) updateSummary(); });
+        el.toggleAbbrBtn.addEventListener('click', () => { showAbbr=!showAbbr; localStorage.setItem(STORAGE_KEYS.SHOW_ABBR, showAbbr); updateUI(); if(currentRows.length){ renderTable(); updateSummary(); }});
+        el.toggleTableBtn.addEventListener('click', () => { const h = el.tableContainer.classList.toggle('hidden'); el.selectionToolbar.classList.toggle('hidden'); el.toggleIcon.className = h ? 'fas fa-chevron-right' : 'fas fa-chevron-down'; el.toggleTableBtn.innerHTML = `<i class="${el.toggleIcon.className}"></i> ${h ? 'Xem bảng chi tiết' : 'Ẩn bảng chi tiết'}`; });
+        el.selectMainBtn.addEventListener('click', () => syncSelection(currentRows.reduce((a,r,i)=>SPECIAL_NAMES.includes(r.cleanName)?[...a,i]:a,[])));
+        el.selectAbnormalBtn.addEventListener('click', () => syncSelection(currentRows.reduce((a,r,i)=>getStatus(r.value,r.refRange)==='abnormal'?[...a,i]:a,[])));
+        el.selectAllBtn.addEventListener('click', () => syncSelection(currentRows.map((_,i)=>i))); el.deselectAllBtn.addEventListener('click', () => syncSelection([]));
+        el.autoToggleBtn.addEventListener('click', () => { autoSummarizeEnabled=!autoSummarizeEnabled; localStorage.setItem(STORAGE_KEYS.AUTO_SUMMARIZE, autoSummarizeEnabled); updateUI(); showToast(autoSummarizeEnabled?'Bật tự động tóm tắt':'Tắt tự động tóm tắt'); });
+        el.themeToggle.addEventListener('click', () => setTheme(!document.body.classList.contains('dark-mode')));
+        
+        el.settingsBtn.addEventListener('click', () => { tempAbbr = {...currentAbbrMap}; renderAbbr(); el.settingsModal.classList.remove('hidden'); });
+        el.btnCancelSettings.addEventListener('click', () => el.settingsModal.classList.add('hidden'));
+        el.btnSaveSettings.addEventListener('click', () => { Object.keys(tempAbbr).forEach(k => { if(tempAbbr[k]==='') { if(DEFAULT_ABBR_MAP[k]) tempAbbr[k]=DEFAULT_ABBR_MAP[k]; else delete tempAbbr[k]; }}); currentAbbrMap={...tempAbbr}; localStorage.setItem(STORAGE_KEYS.ABBR_MAP, JSON.stringify(currentAbbrMap)); el.settingsModal.classList.add('hidden'); showToast('Đã lưu viết tắt'); if(currentRows.length){renderTable(); updateSummary();} });
+        el.abbrInputsContainer.addEventListener('input', e => { if(e.target.classList.contains('abbr-row-input')) tempAbbr[e.target.dataset.key] = e.target.value.trim(); });
+        el.abbrInputsContainer.addEventListener('click', e => { const btn = e.target.closest('.delete-abbr-btn'); if(btn){ delete tempAbbr[btn.dataset.key]; renderAbbr(); }});
+        el.btnAddAbbr.addEventListener('click', () => { const k=el.newAbbrKey.value.trim(), v=el.newAbbrValue.value.trim(); if(k&&v){ tempAbbr[k]=v; el.newAbbrKey.value=''; el.newAbbrValue.value=''; renderAbbr(); } else showToast('Nhập đủ tên và viết tắt!'); });
+        el.btnResetAbbr.addEventListener('click', () => { if(confirm("Khôi phục viết tắt mặc định?")){ tempAbbr={...DEFAULT_ABBR_MAP}; renderAbbr(); }});
+        
+        el.formatDropdownToggle.addEventListener('click', e => { e.stopPropagation(); el.formatDropdownMenu.classList.toggle('hidden'); });
+        document.addEventListener('click', () => el.formatDropdownMenu.classList.add('hidden'));
+        el.formatItems.forEach(i => i.addEventListener('click', e => { e.stopPropagation(); copyFormat=i.dataset.value; localStorage.setItem(STORAGE_KEYS.COPY_FORMAT, copyFormat); updateUI(); el.formatDropdownMenu.classList.add('hidden'); updateSummary(); }));
+        
+        el.quickCopyToggle.addEventListener('click', () => { const h = el.quickCopySection.classList.toggle('hidden'); el.quickCopyIcon.className = h ? 'fas fa-chevron-right' : 'fas fa-chevron-down'; });
+        el.btnAddQuickCopy.addEventListener('click', () => { editingQuickId=null; el.modalTitle.innerHTML='<i class="fas fa-edit" style="color:var(--primary-light);"></i> Thêm Mẫu Mới'; el.modalContent.value=''; el.itemModal.classList.remove('hidden'); el.quickCopySection.classList.remove('hidden'); el.quickCopyIcon.className='fas fa-chevron-down';
+          const cats = [...new Set(["Liều dùng thuốc", "Toàn thân", ...customQuickItems.map(i=>i.category)])];
+          el.catSelect.innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('') + `<option value="--new--">+ Nhóm mới...</option>`; el.catInput.style.display='none';
+        });
+        el.catSelect.addEventListener('change', e => { el.catInput.style.display = e.target.value==='--new--'?'block':'none'; if(e.target.value==='--new--') el.catInput.focus(); });
+        el.modalCancel.addEventListener('click', () => el.itemModal.classList.add('hidden'));
+        el.modalSave.addEventListener('click', () => { const c=el.catSelect.value==='--new--'?el.catInput.value.trim():el.catSelect.value, t=el.modalContent.value.trim(); if(!t) return showToast('Nhập nội dung!');
+          if(editingQuickId){ const i=customQuickItems.find(x=>x.id===editingQuickId); if(i){i.category=c||'Khác'; i.content=t;} } else customQuickItems.push({id:Date.now().toString(), category:c||'Khác', content:t});
+          saveQuick(); el.itemModal.classList.add('hidden'); showToast('Đã lưu mẫu');
+        });
+        document.addEventListener('click', () => el.contextMenu.classList.add('hidden'));
+        el.menuEdit.addEventListener('click', () => { const i=customQuickItems.find(x=>x.id===contextMenuTargetId); if(i){ editingQuickId=i.id; el.modalTitle.innerHTML='<i class="fas fa-edit" style="color:var(--primary-light);"></i> Sửa Mẫu'; el.modalContent.value=i.content; const cats=[...new Set(["Liều dùng thuốc", "Toàn thân", ...customQuickItems.map(x=>x.category)])]; el.catSelect.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('')+`<option value="--new--">+ Nhóm mới...</option>`; if(cats.includes(i.category)) el.catSelect.value=i.category; else { el.catSelect.value='--new--'; el.catInput.value=i.category; el.catInput.style.display='block'; } el.itemModal.classList.remove('hidden'); }});
+        el.menuDelete.addEventListener('click', () => { if(confirm('Xóa mẫu này?')) { customQuickItems=customQuickItems.filter(x=>x.id!==contextMenuTargetId); saveQuick(); showToast('Đã xóa'); }});
+      }
+
+      // Init
+      setTheme(localStorage.getItem(STORAGE_KEYS.THEME)==='dark'); updateUI(); renderQuick(); bind();
+      document.querySelectorAll('.default-table .copy-quick-btn').forEach(b => b.addEventListener('click', e=>{e.stopPropagation(); navigator.clipboard.writeText(b.closest('tr').querySelector('.content-cell').innerText.trim()).then(()=>showToast('Đã copy!'));}));
+      document.querySelectorAll('.default-table .content-cell').forEach(c => c.addEventListener('click', ()=>{navigator.clipboard.writeText(c.innerText.trim()).then(()=>showToast('Đã copy!'));}));
+    })();
+  </script>
+</body>
+</html>
