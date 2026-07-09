@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -123,7 +124,84 @@
     .summary-card:hover { box-shadow: var(--shadow-md); }
     body.dark-mode .summary-card { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); border-left-color: var(--primary-dark); }
     body.dark-mode .summary-card::-webkit-scrollbar-thumb { background-color: #475569; }
-
+	/* ---------- MORE DROPDOWN---------- */
+    .more-dropdown { position: relative; display: inline-block; }
+    .more-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface-light);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      min-width: 180px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.2s ease;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .more-dropdown:hover .more-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    body.dark-mode .more-dropdown-menu { background: var(--surface-dark); border-color: var(--border-dark); box-shadow: 0 12px 32px rgba(0,0,0,0.5); }
+    
+    .more-dropdown-menu .action-btn { width: 100%; justify-content: flex-start; padding: 10px 16px; }
+    .more-dropdown-menu .custom-dropdown { width: 100%; }
+    .more-dropdown-menu .format-toggle-btn { justify-content: space-between; }
+    
+    /* ---------- SUBMENU ---------- */
+    .more-dropdown-menu .custom-dropdown { position: relative; }
+    
+    .more-dropdown-menu .accordion-menu {
+      position: absolute;
+      top: -12px; 
+      right: 100%;
+      left: auto !important;
+      margin-right: 8px;
+      overflow: visible !important;
+      background: var(--surface-light) !important;
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      min-width: 180px;
+      padding: 8px 0;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    
+    .more-dropdown-menu .accordion-menu::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -15px; 
+      width: 15px;
+      height: 100%;
+    }
+    
+    .more-dropdown-menu .custom-dropdown:hover .accordion-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    
+    body.dark-mode .more-dropdown-menu .accordion-menu {
+      background: var(--surface-dark) !important;
+      border-color: var(--border-dark);
+      box-shadow: -12px 12px 32px rgba(0,0,0,0.5);
+    }
     /* ---------- STATS ---------- */
     .stats-row { display: flex; align-items: center; justify-content: space-between; margin: 0 0 24px 0; flex-wrap: wrap; gap: 16px; }
     .stats-badge { background: var(--surface-light); border-radius: 60px; padding: 12px 28px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 12px; color: var(--text-light); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); }
@@ -187,7 +265,7 @@
     @keyframes toastSlide { from { opacity: 0; transform: translateX(-50%) translateY(40px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     .toast-message.fade-out { opacity: 0; transform: translateX(-50%) translateY(30px); transition: all 0.3s ease; }
 
-    /* ---------- TRANSFER SECTION (Bottom Right) ---------- */
+    /* ---------- TRANSFER SECTION ---------- */
     .transfer-section { position: fixed; bottom: 24px; right: 24px; z-index: 1050; padding: 10px 20px; background: var(--surface-light); border-radius: 60px; border: 1px solid var(--border-light); font-size: 13.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); transition: var(--transition); }
     .transfer-section a { padding: 6px 14px; font-size: 12.5px; background: rgba(58, 95, 208, 0.1); border-radius: 40px; font-weight: 700; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--primary-light); }
     .transfer-section a:hover { background: var(--primary-light); color: white; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(58, 95, 208, 0.3); }
@@ -219,13 +297,7 @@
     .content-cell:hover { background-color: #f8fafc; color: var(--primary-light); box-shadow: inset 4px 0 0 var(--primary-light); }
     body.dark-mode .content-cell:hover { background-color: #1e293b; color: var(--primary-dark); box-shadow: inset 4px 0 0 var(--primary-dark); }
     .copy-cell { width: 25%; text-align: right; white-space: nowrap; }
-    
-    .copy-quick-btn { background-color: var(--surface-light); border: 1px solid var(--border-light); border-radius: 40px; padding: 8px 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: var(--transition); color: var(--text-light); margin-left: 4px; }
-    .copy-quick-btn:hover { background-color: #e5efff; border-color: var(--primary-light); color: var(--primary-light); transform: scale(1.05); }
-    body.dark-mode .copy-quick-btn { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); }
-    body.dark-mode .copy-quick-btn:hover { background-color: #2c3857; border-color: var(--primary-dark); color: var(--primary-dark); }
-
-    /* --- NÚT SỬA & XÓA MỚI --- */
+   
     .icon-action-btn { background: transparent; border: none; cursor: pointer; padding: 8px; font-size: 15px; color: #94a3b8; transition: var(--transition); border-radius: 8px; margin-right: 2px; display: inline-flex; align-items: center; justify-content: center; }
     .icon-action-btn.edit-quick-btn:hover { color: var(--primary-light); background: #eef3ff; transform: translateY(-1px); }
     .icon-action-btn.delete-quick-btn:hover { color: #d9534f; background: #feeae9; transform: translateY(-1px); }
@@ -254,7 +326,6 @@
     body.dark-mode .modal-input-group select, body.dark-mode .modal-input-group input, body.dark-mode .modal-input-group textarea { background-color: var(--bg-dark); border-color: var(--border-dark); color: var(--text-dark); }
     body.dark-mode .modal-input-group select:focus, body.dark-mode .modal-input-group input:focus, body.dark-mode .modal-input-group textarea:focus { border-color: var(--primary-dark); background: var(--surface-dark); box-shadow: 0 0 0 3px rgba(109,142,255,0.1); }
 
-    /* Modal Mới: Box Thêm viết tắt */
     .add-abbr-box { background: var(--bg-light); border: 2px dashed var(--border-light); border-radius: 20px; padding: 20px; margin-bottom: 24px; transition: var(--transition); }
     .add-abbr-box:focus-within { border-color: var(--primary-light); background: #f0f4fa; }
     body.dark-mode .add-abbr-box { background: rgba(0, 0, 0, 0.2); border-color: var(--border-dark); }
@@ -360,31 +431,48 @@
       <div class="summary-actions">
         <div class="action-btn" id="copySummaryBtn" style="background: var(--primary-light); color: white; border:none;"><i class="far fa-copy"></i> Copy</div>
 
-        <div class="custom-dropdown" id="formatDropdown">
-          <div class="action-btn" id="formatDropdownToggle">
-            <i class="fas fa-list-ul"></i> Định dạng <i class="fas fa-chevron-down" style="font-size: 11px; margin-left: 2px;"></i>
+        <div class="more-dropdown">
+          <div class="action-btn">
+            <i class="fas fa-ellipsis-h"></i> Thêm
           </div>
-          <div class="dropdown-menu hidden" id="formatDropdownMenu">
-            <div class="dropdown-item" data-value="comma"><i class="fas fa-check"></i> Dấu phẩy (,)</div>
-            <div class="dropdown-item" data-value="semicolon"><i class="fas fa-check"></i> Chấm phẩy (;)</div>
-            <div class="dropdown-item" data-value="newline"><i class="fas fa-check"></i> Xuống dòng</div>
+          
+          <div class="more-dropdown-menu">
+            <div class="custom-dropdown" id="formatDropdown">
+              <div class="action-btn format-toggle-btn" id="formatDropdownToggle">
+                <span><i class="fas fa-list-ul"></i> Định dạng</span>
+                <i class="fas fa-chevron-left" style="font-size: 11px;"></i> </div>
+              <div class="dropdown-menu accordion-menu" id="formatDropdownMenu">
+                <div class="dropdown-item" data-value="comma"><i class="fas fa-check"></i> Dấu phẩy (,)</div>
+                <div class="dropdown-item" data-value="semicolon"><i class="fas fa-check"></i> Chấm phẩy (;)</div>
+                <div class="dropdown-item" data-value="newline"><i class="fas fa-check"></i> Xuống dòng</div>
+              </div>
+            </div>
+            
+            <div class="action-btn" id="toggleUnitBtn">
+              <i class="fas fa-eye-slash" id="unitIcon" style="width: 16px;"></i><span id="unitBtnText">Đơn vị</span>
+            </div>
+            
+            <div class="action-btn" id="toggleAbbrBtn">
+              <i class="fas fa-font" id="abbrIcon" style="width: 16px;"></i><span id="abbrBtnText">Tên đủ</span>
+            </div>
           </div>
         </div>
-        
-        <div class="action-btn" id="toggleUnitBtn"><i class="fas fa-eye-slash" id="unitIcon"></i><span id="unitBtnText">Đơn vị</span></div>
-        <div class="action-btn" id="toggleAbbrBtn"><i class="fas fa-font" id="abbrIcon"></i><span id="abbrBtnText">Tên đủ</span></div>
+      </div>
+    </div> 
+
+    <div style="position: relative; margin-bottom: 24px;">
+      <div class="summary-card" id="summaryText" style="margin-bottom: 0; padding-bottom: 56px;">Chưa có dữ liệu. Vui lòng dán kết quả xét nghiệm vào ô phía trên.</div>
+      
+      <div style="position: absolute; bottom: 16px; right: 24px; display: flex; gap: 8px; z-index: 10;">
+        <div class="stats-badge" id="totalIndicators" title="Tổng số chỉ số" style="padding: 6px 14px; font-size: 13.5px; box-shadow: var(--shadow-sm); cursor: help;"><i class="fas fa-calculator"></i> 0</div>
+        <div class="stats-badge abnormal-badge" id="abnormalIndicators" title="Chỉ số bất thường" style="padding: 6px 14px; font-size: 13.5px; box-shadow: var(--shadow-sm); cursor: help;"><i class="fas fa-exclamation-triangle"></i> 0</div>
       </div>
     </div>
-    
-    <div class="summary-card" id="summaryText">Chưa có dữ liệu. Vui lòng dán kết quả xét nghiệm vào ô phía trên.</div>
 
-    <div class="stats-row">
-      <div class="stats-badge" id="totalIndicators"><i class="fas fa-calculator"></i> Tổng: 0</div>
-      <div class="stats-badge abnormal-badge" id="abnormalIndicators"><i class="fas fa-exclamation-triangle"></i> Bất thường: 0</div>
-    </div>
-
-    <div>
-      <div class="toggle-table-btn" id="toggleTableBtn"><i class="fas fa-chevron-right" id="toggleIcon"></i> Xem bảng chi tiết</div>
+    <div class="stats-row" style="margin-bottom: 16px; margin-top: 0;">
+      <div class="toggle-table-btn" id="toggleTableBtn" style="margin-bottom: 0;">
+        <i class="fas fa-chevron-right" id="toggleIcon"></i> Xem bảng chi tiết
+      </div>
     </div>
     
     <div id="selectionToolbar" class="selection-toolbar hidden animate-fade-in">
@@ -491,11 +579,8 @@
   </div>
 
   <script type="module">
-    // Nhập các module cần thiết từ Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
-    // CẤU HÌNH FIREBASE CỦA BẠN
     const firebaseConfig = {
       apiKey: "AIzaSyBO0lJNyz9N4sr5z_FZyQgX_tWXD0XH82g",
       authDomain: "tomtatcls.firebaseapp.com",
@@ -506,7 +591,6 @@
       appId: "1:898386417757:web:b1fa660ff3821abf4ad5b4"
     };
 
-    // Khởi tạo Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const quickCopyRef = ref(db, 'quickCopyItems');
@@ -524,7 +608,7 @@
       let copyFormat = localStorage.getItem(STORAGE_KEYS.COPY_FORMAT) || 'comma';
       let autoSummarizeEnabled = localStorage.getItem(STORAGE_KEYS.AUTO_SUMMARIZE) !== 'false';
       let currentRows = [], selectedIndices = [];
-      let customQuickItems = []; // Firebase sẽ nạp dữ liệu vào đây
+      let customQuickItems = [];
       let editingQuickId = null, contextMenuTargetId = null;
 
       // 3. DOM ELEMENTS
@@ -596,8 +680,8 @@
       }
       function updateStats() {
         el.rowCountBadge.innerHTML = `<i class="fas fa-database"></i> ${currentRows.length} dòng`;
-        el.totalIndicatorsSpan.innerHTML = `<i class="fas fa-calculator"></i> Tổng: ${currentRows.length}`;
-        el.abnormalIndicatorsSpan.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Bất thường: ${currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length}`;
+        el.totalIndicatorsSpan.innerHTML = `<i class="fas fa-calculator"></i> ${currentRows.length}`;
+        el.abnormalIndicatorsSpan.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length}`;
         el.selectedCountBadge.innerHTML = `<i class="fas fa-check-circle"></i> Đã chọn: ${selectedIndices.length}/${currentRows.length}`;
       }
 
@@ -658,7 +742,6 @@
       }
       function setTheme(isDark) { document.body.classList.toggle('dark-mode', isDark); el.themeToggle.querySelector('i').className = isDark ? 'fas fa-moon' : 'fas fa-sun'; localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light'); }
 
-      // Abbr Settings
       let tempAbbr = {};
       function renderAbbr() {
         el.abbrInputsContainer.innerHTML = '';
@@ -670,7 +753,6 @@
         });
       }
       
-      // FIREBASE REALTIME LOAD DATA & RENDER
       onValue(quickCopyRef, (snapshot) => {
         customQuickItems = [];
         if (snapshot.exists()) {
@@ -686,7 +768,6 @@
         renderQuick(); 
       });
 
-      // TÍNH NĂNG MỚI: Thêm nút Sửa/Xóa trực tiếp thay vì ẩn trong Context Menu
       function renderQuick() {
         document.querySelectorAll('.custom-table').forEach(t => t.remove());
         const grps = customQuickItems.reduce((a, i) => { (a[i.category] = a[i.category] || []).push(i); return a; }, {});
@@ -699,40 +780,34 @@
               <td class="copy-cell" style="white-space: nowrap; text-align: right;">
                 <button class="icon-action-btn edit-quick-btn" data-id="${i.id}" title="Sửa mẫu này"><i class="fas fa-edit"></i></button>
                 <button class="icon-action-btn delete-quick-btn" data-id="${i.id}" title="Xóa mẫu này"><i class="fas fa-trash-alt"></i></button>
-                <button class="copy-quick-btn" data-text="${escapeHtml(i.content)}"><i class="far fa-copy"></i> Copy</button>
               </td>
             </tr>`).join('');
           el.quickCopyGrid.appendChild(tbl);
         });
 
-        // Event Copy
-        document.querySelectorAll('.custom-table .copy-quick-btn, .custom-table .content-cell').forEach(btn => btn.addEventListener('click', e => { 
+        document.querySelectorAll('.custom-table .content-cell').forEach(btn => btn.addEventListener('click', e => { 
           e.stopPropagation(); 
           const t = e.currentTarget.getAttribute('data-text'); 
           if(t) navigator.clipboard.writeText(t).then(()=>showToast('Đã sao chép!')); 
         }));
 
-        // Event Mở form Sửa
         document.querySelectorAll('.custom-table .edit-quick-btn').forEach(btn => btn.addEventListener('click', e => {
           e.stopPropagation();
           const id = e.currentTarget.getAttribute('data-id');
           openEditModal(id);
         }));
 
-        // Event Xóa
         document.querySelectorAll('.custom-table .delete-quick-btn').forEach(btn => btn.addEventListener('click', e => {
           e.stopPropagation();
           const id = e.currentTarget.getAttribute('data-id');
           deleteItem(id);
         }));
 
-        // Vẫn giữ lại Context Menu cũ nếu người dùng quen chuột phải
         document.querySelectorAll('.custom-table .custom-row').forEach(tr => tr.addEventListener('contextmenu', e => { 
           e.preventDefault(); contextMenuTargetId = tr.dataset.id; el.contextMenu.style.left=e.pageX+'px'; el.contextMenu.style.top=e.pageY+'px'; el.contextMenu.classList.remove('hidden'); 
         }));
       }
 
-      // HÀM HELPER SỬA & XÓA
       function openEditModal(id) {
         const i = customQuickItems.find(x => x.id === id); 
         if(i) { 
@@ -791,7 +866,6 @@
         el.catSelect.addEventListener('change', e => { el.catInput.style.display = e.target.value==='--new--'?'block':'none'; if(e.target.value==='--new--') el.catInput.focus(); });
         el.modalCancel.addEventListener('click', () => el.itemModal.classList.add('hidden'));
         
-        // LƯU FIREBASE
         el.modalSave.addEventListener('click', () => { 
           const c = el.catSelect.value === '--new--' ? el.catInput.value.trim() : el.catSelect.value;
           const t = el.modalContent.value.trim(); 
@@ -808,13 +882,11 @@
           }
         });
 
-        // Context Menu Cũ
         document.addEventListener('click', () => el.contextMenu.classList.add('hidden'));
         el.menuEdit.addEventListener('click', () => { openEditModal(contextMenuTargetId); el.contextMenu.classList.add('hidden'); });
         el.menuDelete.addEventListener('click', () => { deleteItem(contextMenuTargetId); el.contextMenu.classList.add('hidden'); });
       }
 
-      // Init
       setTheme(localStorage.getItem(STORAGE_KEYS.THEME)==='dark'); updateUI(); bind();
     })();
   </script>
