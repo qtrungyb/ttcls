@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -580,7 +581,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set, push, remove, serverTimestamp, increment, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
     const firebaseConfig = {
       apiKey: "AIzaSyBO0lJNyz9N4sr5z_FZyQgX_tWXD0XH82g",
       authDomain: "tomtatcls.firebaseapp.com",
@@ -594,7 +595,19 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const quickCopyRef = ref(db, 'quickCopyItems');
-
+    function logPageVisit() {
+      const statsRef = ref(db, 'page_visits/stats');
+      update(statsRef, {
+        total_views: increment(1)
+      }).catch(err => console.error("Lỗi cập nhật bộ đếm:", err));
+      const logsRef = ref(db, 'page_visits/logs');
+      push(logsRef, {
+        timestamp: serverTimestamp(),
+        localTime: new Date().toLocaleString('vi-VN'),
+        userAgent: navigator.userAgent
+      }).catch(err => console.error("Lỗi ghi log truy cập:", err));
+    }
+    logPageVisit();
     (function() {
       // 1. CONSTANTS & CONFIGURATION
       const STORAGE_KEYS = { ABBR_MAP: 'customAbbrMap', SHOW_UNIT: 'showUnit', SHOW_ABBR: 'showAbbr', COPY_FORMAT: 'copyFormat', AUTO_SUMMARIZE: 'autoSummarize', THEME: 'theme' };
