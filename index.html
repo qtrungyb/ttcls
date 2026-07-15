@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -287,24 +285,20 @@
     body.dark-mode .btn-add-quick-copy:hover { background: var(--primary-dark); color: #0f141e; }
     
     .quick-copy-grid { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: flex-start; }
-    .quick-copy-table { flex: 1 1 300px; background-color: var(--surface-light); border-radius: 20px; border: 1px solid var(--border-light); border-collapse: collapse; overflow: hidden; font-size: 14.5px; width: 100%; box-shadow: var(--shadow-sm); transition: var(--transition); }
+    .quick-copy-table { flex: 1 1 300px; background-color: var(--surface-light); border-radius: 20px; border: 1px solid var(--border-light); border-collapse: collapse; overflow: hidden; font-size: 14.5px; width: 100%; min-width: 0 !important; table-layout: fixed !important; box-shadow: var(--shadow-sm); transition: var(--transition); }
+	.quick-copy-table th, .quick-copy-table td { vertical-align: middle !important; }
     .quick-copy-table:hover { box-shadow: var(--shadow-md); }
     body.dark-mode .quick-copy-table { background-color: var(--surface-dark); border-color: var(--border-dark); }
     .quick-copy-table caption { font-size: 15px; font-weight: 700; background: var(--primary-gradient); color: white; padding: 14px 20px; text-align: left; caption-side: top; text-transform: uppercase; letter-spacing: 0.5px; }
     .quick-copy-table td { padding: 16px 20px; border-bottom: 1px solid var(--border-light); color: var(--text-light); }
     body.dark-mode .quick-copy-table td { border-bottom-color: var(--border-dark); color: var(--text-dark); }
     .quick-copy-table tr:last-child td { border-bottom: none; }
-    .content-cell { width: 75%; word-break: break-word; white-space: pre-line; cursor: pointer; transition: 0.2s; }
+    .content-cell { width: 100%; word-break: break-word; white-space: pre-line; cursor: pointer; transition: 0.2s; }
     .content-cell:hover { background-color: #f8fafc; color: var(--primary-light); box-shadow: inset 4px 0 0 var(--primary-light); }
     body.dark-mode .content-cell:hover { background-color: #1e293b; color: var(--primary-dark); box-shadow: inset 4px 0 0 var(--primary-dark); }
-    .copy-cell { width: 25%; text-align: right; white-space: nowrap; }
    
-    .icon-action-btn { background: transparent; border: none; cursor: pointer; padding: 8px; font-size: 15px; color: #94a3b8; transition: var(--transition); border-radius: 8px; margin-right: 2px; display: inline-flex; align-items: center; justify-content: center; }
-    .icon-action-btn.edit-quick-btn:hover { color: var(--primary-light); background: #eef3ff; transform: translateY(-1px); }
-    .icon-action-btn.delete-quick-btn:hover { color: #d9534f; background: #feeae9; transform: translateY(-1px); }
+    .icon-action-btn { background: transparent; border: none; cursor: pointer; width: 34px; height: 34px; font-size: 15px; color: #94a3b8; transition: var(--transition); border-radius: 8px; margin-left: 6px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; flex-shrink: 0; }
     body.dark-mode .icon-action-btn { color: #64748b; }
-    body.dark-mode .icon-action-btn.edit-quick-btn:hover { color: var(--primary-dark); background: #2f3a5c; }
-    body.dark-mode .icon-action-btn.delete-quick-btn:hover { color: #ff8a7a; background: #3b2c2c; }
 
     /* ---------- MODALS ---------- */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(5px); transition: opacity 0.3s; padding: 16px; }
@@ -395,6 +389,20 @@
       .abbr-row-input { width: calc(100% - 52px); flex: none; }
       .abbr-row-label { width: 100%; flex: none; margin-bottom: 8px; }
     }
+
+    .modal-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border-light); padding-bottom: 8px; }
+    body.dark-mode .modal-tabs { border-bottom-color: var(--border-dark); }
+    .tab-btn { background: transparent; border: none; padding: 10px 20px; font-size: 15px; font-weight: 600; color: #94a3b8; cursor: pointer; border-radius: 8px; transition: 0.2s; position: relative; }
+    .tab-btn:hover { color: var(--primary-light); background: rgba(58, 95, 208, 0.05); }
+    .tab-btn.active { color: var(--primary-light); background: rgba(58, 95, 208, 0.1); }
+    body.dark-mode .tab-btn:hover { color: var(--primary-dark); background: rgba(109, 142, 255, 0.05); }
+    body.dark-mode .tab-btn.active { color: var(--primary-dark); background: rgba(109, 142, 255, 0.15); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeInUp 0.3s ease; }
+
+    .grid-table th, .grid-table td { border: 1px solid var(--border-light) !important; }
+    body.dark-mode .grid-table th, body.dark-mode .grid-table td { border-color: var(--border-dark) !important; }
+    .grid-table th { text-align: center !important; }
   </style>
 </head>
 <body>
@@ -544,36 +552,52 @@
       </div>
     </div>
   </div>
-
   <div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal-box" style="max-width: 600px;">
-      <h3><i class="fas fa-cog" style="color: var(--primary-light);"></i> Quản lý Viết tắt</h3>
+    <div class="modal-box" style="max-width: 600px; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;"><i class="fas fa-cog" style="color: var(--primary-light);"></i> Quản lý Viết tắt</h3>
+        <button class="icon-btn" id="btnCloseSettings" style="width: 40px; height: 40px; font-size: 18px;"><i class="fas fa-times"></i></button>
+      </div>
       
-      <div class="add-abbr-box">
-        <div class="add-abbr-box-title"><i class="fas fa-plus-circle"></i> Thêm mới</div>
-        <div class="add-abbr-inputs">
-          <input type="text" id="newAbbrKey" class="add-abbr-input" placeholder="Tên gốc (VD: Glucose)">
-          <input type="text" id="newAbbrValue" class="add-abbr-input" placeholder="Viết tắt (VD: Glu)">
-        </div>
-        <button class="btn-add-abbr" id="btnAddAbbr"><i class="fas fa-check"></i> Lưu chỉ số này</button>
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="tabList"><i class="fas fa-list"></i> Danh sách</button>
+        <button class="tab-btn" data-tab="tabAdd"><i class="fas fa-plus-circle"></i> Thêm mới</button>
       </div>
 
-      <div style="font-size: 14px; font-weight: 600; color: var(--text-light); margin-bottom: 12px;">
-        Danh sách hiện tại <span style="font-size: 12px; color: #94a3b8; font-weight: normal; margin-left: 8px;">(Xóa rỗng để dùng tên gốc)</span>
+      <div id="tabList" class="tab-content active modal-body" style="padding-right: 4px; max-height: 450px; overflow-y: auto; overflow-x: hidden;">
+        <div style="font-size: 14.5px; font-weight: 600; color: var(--text-light); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>Hệ thống <span class="stats-badge" style="padding: 2px 10px; font-size: 12.5px; display: inline-flex; margin-left: 8px;" id="abbrCountBadge">0</span></span>
+          <button class="btn-text-danger" id="btnResetAbbr" style="padding: 6px 12px; font-size: 13.5px; background: rgba(217,83,79,0.1); border-radius: 8px;"><i class="fas fa-undo"></i> Khôi phục mặc định</button>
+        </div>
+        <table class="quick-copy-table grid-table" style="width: 100%; border-radius: 12px; table-layout: fixed; margin-top: 8px;">
+          <thead style="position: sticky; top: 0; z-index: 5;">
+            <tr>
+              <th style="width: 50%; padding: 12px 16px; background: var(--bg-light); font-size: 13px; color: var(--text-light);">TÊN GỐC</th>
+              <th style="width: 30%; padding: 12px 16px; background: var(--bg-light); font-size: 13px; color: var(--text-light);">VIẾT TẮT</th>
+              <th style="width: 20%; padding: 12px 16px; background: var(--bg-light);"></th>
+            </tr>
+          </thead>
+          <tbody id="abbrListContainer"></tbody>
+        </table>
       </div>
 
-      <div class="modal-body" id="abbrInputsContainer" style="padding-right: 12px;"></div>
-      
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); flex-wrap: wrap; gap: 16px;">
-        <button class="btn-text-danger" id="btnResetAbbr" style="padding: 8px 12px;"><i class="fas fa-undo"></i> Khôi phục mặc định</button>
-        <div style="display: flex; gap: 12px;">
-          <button class="btn btn-outline" id="btnCancelSettings" style="padding: 10px 20px; font-size: 15px;">Hủy</button>
-          <button class="btn btn-primary" id="btnSaveSettings" style="padding: 10px 24px; font-size: 15px;">Xong</button>
+      <div id="tabAdd" class="tab-content">
+        <div class="add-abbr-box" style="margin-bottom: 0; padding: 24px;">
+          <div class="add-abbr-box-title" id="abbrFormTitle"><i class="fas fa-plus-circle"></i> Thêm chỉ số mới</div>
+          <div class="add-abbr-inputs" style="flex-direction: column;">
+            <input type="hidden" id="editAbbrId" value="">
+            <input type="text" id="newAbbrKey" class="add-abbr-input" placeholder="Tên gốc (VD: Glucose)">
+            <input type="text" id="newAbbrValue" class="add-abbr-input" placeholder="Viết tắt (VD: Glu)" style="margin-top: 12px;">
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button class="btn-add-abbr" id="btnAddAbbr" style="flex: 1;"><i class="fas fa-save"></i> Lưu lại</button>
+            <button class="btn-add-abbr hidden" id="btnCancelEditAbbr" style="flex: 1; background: #94a3b8;"><i class="fas fa-times"></i> Hủy thao tác</button>
+          </div>
         </div>
       </div>
+
     </div>
   </div>
-
   <div id="contextMenu" class="custom-context-menu hidden">
     <div class="menu-item" id="menuEdit"><i class="fas fa-edit" style="width:16px;"></i> Chỉnh sửa</div>
     <div class="menu-item delete" id="menuDelete"><i class="fas fa-trash-alt" style="width:16px;"></i> Xóa dòng</div>
@@ -582,6 +606,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getDatabase, ref, onValue, set, push, remove, serverTimestamp, increment, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    
     const firebaseConfig = {
       apiKey: "AIzaSyBO0lJNyz9N4sr5z_FZyQgX_tWXD0XH82g",
       authDomain: "tomtatcls.firebaseapp.com",
@@ -595,27 +620,29 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const quickCopyRef = ref(db, 'quickCopyItems');
+    const abbrRef = ref(db, 'abbreviations');
+
     function logPageVisit() {
       const statsRef = ref(db, 'page_visits/stats');
-      update(statsRef, {
-        total_views: increment(1)
-      }).catch(err => console.error("Lỗi cập nhật bộ đếm:", err));
+      update(statsRef, { total_views: increment(1) }).catch(err => console.error("Lỗi:", err));
       const logsRef = ref(db, 'page_visits/logs');
       push(logsRef, {
         timestamp: serverTimestamp(),
         localTime: new Date().toLocaleString('vi-VN'),
         userAgent: navigator.userAgent
-      }).catch(err => console.error("Lỗi ghi log truy cập:", err));
+      }).catch(err => console.error("Lỗi:", err));
     }
     logPageVisit();
+
     (function() {
       // 1. CONSTANTS & CONFIGURATION
-      const STORAGE_KEYS = { ABBR_MAP: 'customAbbrMap', SHOW_UNIT: 'showUnit', SHOW_ABBR: 'showAbbr', COPY_FORMAT: 'copyFormat', AUTO_SUMMARIZE: 'autoSummarize', THEME: 'theme' };
+      const STORAGE_KEYS = { SHOW_UNIT: 'showUnit', SHOW_ABBR: 'showAbbr', COPY_FORMAT: 'copyFormat', AUTO_SUMMARIZE: 'autoSummarize', THEME: 'theme' };
       const SPECIAL_NAMES = ["Số lượng hồng cầu", "Huyết sắc tố", "Hematocrit", "Số lượng tiểu cầu", "Số lượng bạch cầu", "Tỷ lệ bạch cầu GR"];
       const DEFAULT_ABBR_MAP = { "Số lượng hồng cầu": "HC", "Huyết sắc tố": "Hb", "Hematocrit": "HTC", "Số lượng tiểu cầu": "TC", "Số lượng bạch cầu": "BC", "Tỷ lệ bạch cầu GR": "N%" };
 
       // 2. STATE
-      let currentAbbrMap = JSON.parse(localStorage.getItem(STORAGE_KEYS.ABBR_MAP)) || { ...DEFAULT_ABBR_MAP };
+      let currentAbbrMap = {};
+      let firebaseAbbrList = [];
       let showUnit = localStorage.getItem(STORAGE_KEYS.SHOW_UNIT) === 'true';
       let showAbbr = localStorage.getItem(STORAGE_KEYS.SHOW_ABBR) !== 'false';
       let copyFormat = localStorage.getItem(STORAGE_KEYS.COPY_FORMAT) || 'comma';
@@ -633,9 +660,18 @@
         rowCountBadge: document.getElementById('rowCountBadge'), totalIndicatorsSpan: document.getElementById('totalIndicators'), abnormalIndicatorsSpan: document.getElementById('abnormalIndicators'),
         selectMainBtn: document.getElementById('selectMainBtn'), selectAbnormalBtn: document.getElementById('selectAbnormalBtn'), selectAllBtn: document.getElementById('selectAllBtn'),
         deselectAllBtn: document.getElementById('deselectAllBtn'), autoToggleBtn: document.getElementById('autoToggleBtn'), themeToggle: document.getElementById('themeToggle'),
-        settingsBtn: document.getElementById('settingsBtn'), settingsModal: document.getElementById('settingsModal'), btnCancelSettings: document.getElementById('btnCancelSettings'),
-        btnSaveSettings: document.getElementById('btnSaveSettings'), btnResetAbbr: document.getElementById('btnResetAbbr'), abbrInputsContainer: document.getElementById('abbrInputsContainer'),
-        newAbbrKey: document.getElementById('newAbbrKey'), newAbbrValue: document.getElementById('newAbbrValue'), btnAddAbbr: document.getElementById('btnAddAbbr'),
+        
+        settingsBtn: document.getElementById('settingsBtn'), 
+        settingsModal: document.getElementById('settingsModal'),
+        btnCloseSettings: document.getElementById('btnCloseSettings'),
+        tabBtns: document.querySelectorAll('.tab-btn'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        newAbbrKey: document.getElementById('newAbbrKey'), newAbbrValue: document.getElementById('newAbbrValue'),
+        btnAddAbbr: document.getElementById('btnAddAbbr'), btnCancelEditAbbr: document.getElementById('btnCancelEditAbbr'),
+        editAbbrId: document.getElementById('editAbbrId'), abbrListContainer: document.getElementById('abbrListContainer'),
+        abbrCountBadge: document.getElementById('abbrCountBadge'), abbrFormTitle: document.getElementById('abbrFormTitle'),
+        btnResetAbbr: document.getElementById('btnResetAbbr'),
+        
         formatDropdownToggle: document.getElementById('formatDropdownToggle'), formatDropdownMenu: document.getElementById('formatDropdownMenu'), formatItems: document.querySelectorAll('.dropdown-item'),
         unitIcon: document.getElementById('unitIcon'), unitBtnText: document.getElementById('unitBtnText'), abbrIcon: document.getElementById('abbrIcon'), abbrBtnText: document.getElementById('abbrBtnText'),
         summaryText: document.getElementById('summaryText'), tableBody: document.getElementById('tableBody'), selectedCountBadge: document.getElementById('selectedCountBadge'),
@@ -654,7 +690,21 @@
         document.body.appendChild(t); setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 400); }, duration);
       }
       function parseNumber(str) { const m = str?.replace(/,/g, '.').replace(/\s+/g, '').match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : NaN; }
-      function cleanName(raw) { const m = raw?.trim().replace(/^["']|["']$/g, '').match(/^\([^)]+\)\s*(.*)/); return m ? m[1].trim() : raw?.trim() || ''; }
+      
+      function cleanName(raw) {
+        let str = raw?.trim().replace(/^["']|["']$/g, '') || '';
+        let m = str.match(/^\([^)]+\)\s*(.*)/);
+        let name = m ? m[1].trim() : str;
+        name = name.replace(/\s*\(([^)]+)\)/g, function(match, innerContent) {
+          let text = innerContent.trim().toLowerCase();
+          if (text === 'inr' || text === 'bệnh/ chứng r' || text === 'bệnh/chứng r' || text === 'alt' || text === 'ast') {
+            return match; 
+          }
+          return ''; 
+        });
+        return name.trim();
+      }
+
       function getStatus(valStr, rangeStr) {
         let val = parseNumber(valStr); if (isNaN(val) || !rangeStr) return 'unknown';
         let r = rangeStr.match(/(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/); if (r) return (val < parseNumber(r[1]) || val > parseNumber(r[2])) ? 'abnormal' : 'normal';
@@ -669,8 +719,9 @@
         return input.split(/\r?\n/).map(l => l.trim().split('\t').map(c => c.trim()).filter(c => c)).filter(cols => cols.length >= 3 && /^\d+$/.test(cols[0]))
           .map(cols => ({ stt: cols[0], rawName: cols[1], cleanName: cleanName(cols[1]), value: cols[2], refRange: cols[3] || '', unit: cols[4] || '' }));
       }
+      
       function getSummaryPartsArray(rows, forHtml = true) {
-        return rows.filter(r => r.value).map(r => {
+        return rows.filter(r => r.value && r.value.trim().toLowerCase() !== '- neg').map(r => {
           let n = (showAbbr && currentAbbrMap[r.cleanName]) ? currentAbbrMap[r.cleanName] : r.cleanName;
           let v = forHtml ? escapeHtml(r.value) : r.value;
           if (forHtml && getStatus(r.value, r.refRange) === 'abnormal') v = `<span class="abnormal-value">${v}</span>`;
@@ -679,11 +730,12 @@
           return `${forHtml ? escapeHtml(n) : n}${sep}${v}${u}`;
         });
       }
+
       function updateSummary() {
         const sel = currentRows.filter((_, i) => selectedIndices.includes(i));
         if (!sel.length) return el.summaryText.innerHTML = 'Chưa có dữ liệu.';
         const parts = getSummaryPartsArray(sel, true);
-        if (!parts.length) return el.summaryText.innerHTML = 'Không tìm thấy chỉ số nào có giá trị.';
+        if (!parts.length) return el.summaryText.innerHTML = 'Không tìm thấy chỉ số nào có giá trị hợp lệ.';
         const sep = copyFormat === 'newline' ? '<br>' : (copyFormat === 'semicolon' ? '; ' : ', ');
         el.summaryText.innerHTML = parts.join(sep);
       }
@@ -755,27 +807,72 @@
       }
       function setTheme(isDark) { document.body.classList.toggle('dark-mode', isDark); el.themeToggle.querySelector('i').className = isDark ? 'fas fa-moon' : 'fas fa-sun'; localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light'); }
 
-      let tempAbbr = {};
-      function renderAbbr() {
-        el.abbrInputsContainer.innerHTML = '';
-        Object.keys(DEFAULT_ABBR_MAP).forEach(k => {
-          el.abbrInputsContainer.innerHTML += `<div class="abbr-row"><label class="abbr-row-label">${escapeHtml(k)}</label><input type="text" class="abbr-row-input" data-key="${escapeHtml(k)}" value="${escapeHtml(tempAbbr[k] !== undefined ? tempAbbr[k] : DEFAULT_ABBR_MAP[k])}"><div class="spacer-btn"></div></div>`;
-        });
-        Object.keys(tempAbbr).forEach(k => {
-          if (!DEFAULT_ABBR_MAP.hasOwnProperty(k)) el.abbrInputsContainer.innerHTML += `<div class="abbr-row"><label class="abbr-row-label custom-label">${escapeHtml(k)}</label><input type="text" class="abbr-row-input" data-key="${escapeHtml(k)}" value="${escapeHtml(tempAbbr[k])}"><button class="delete-abbr-btn" data-key="${escapeHtml(k)}"><i class="fas fa-trash-alt"></i></button></div>`;
-        });
+      onValue(abbrRef, (snapshot) => {
+        currentAbbrMap = {}; firebaseAbbrList = [];
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          Object.keys(data).forEach(key => {
+            const item = data[key];
+            firebaseAbbrList.push({ id: key, raw: item.raw, short: item.short });
+            currentAbbrMap[item.raw] = item.short;
+          });
+        } else {
+          Object.keys(DEFAULT_ABBR_MAP).forEach(k => push(abbrRef, { raw: k, short: DEFAULT_ABBR_MAP[k] }));
+        }
+
+        renderAbbrList();
+        if (currentRows && currentRows.length) { renderTable(); updateSummary(); }
+      });
+
+      function renderAbbrList() {
+        el.abbrListContainer.innerHTML = firebaseAbbrList.map(item => `
+          <tr>
+            <td style="padding: 12px 16px; word-break: break-word; cursor: default;">${escapeHtml(item.raw)}</td>
+            <td style="padding: 12px 16px; color: var(--primary-light); font-weight: 600; word-break: break-word; text-align: center;">${escapeHtml(item.short)}</td>
+            <td style="padding: 12px 16px;">
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; height: 100%;">
+                <button class="icon-action-btn edit-abbr-btn" data-id="${item.id}" title="Sửa"><i class="fas fa-edit"></i></button>
+                <button class="icon-action-btn delete-abbr-btn" data-id="${item.id}" title="Xóa"><i class="fas fa-trash-alt"></i></button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+        
+        el.abbrCountBadge.innerHTML = `<i class="fas fa-list"></i> ${firebaseAbbrList.length} mục`;
+
+        document.querySelectorAll('.edit-abbr-btn').forEach(btn => btn.addEventListener('click', e => {
+          const item = firebaseAbbrList.find(x => x.id === e.currentTarget.dataset.id);
+          if (item) {
+            el.editAbbrId.value = item.id;
+            el.newAbbrKey.value = item.raw;
+            el.newAbbrValue.value = item.short;
+            el.abbrFormTitle.innerHTML = '<i class="fas fa-edit"></i> Chỉnh sửa chỉ số';
+            el.btnCancelEditAbbr.classList.remove('hidden');
+            switchTab('tabAdd');
+          }
+        }));
+
+        document.querySelectorAll('.delete-abbr-btn').forEach(btn => btn.addEventListener('click', e => {
+          if(confirm('Bạn có chắc chắn muốn xóa viết tắt này trên toàn hệ thống?')) {
+            remove(ref(db, `abbreviations/${e.currentTarget.dataset.id}`)).then(() => showToast('Đã xóa thành công'));
+          }
+        }));
       }
-      
+
+      function resetAbbrForm() {
+        el.editAbbrId.value = '';
+        el.newAbbrKey.value = '';
+        el.newAbbrValue.value = '';
+        el.abbrFormTitle.innerHTML = '<i class="fas fa-plus-circle"></i> Thêm mới';
+        el.btnCancelEditAbbr.classList.add('hidden');
+      }
+
       onValue(quickCopyRef, (snapshot) => {
         customQuickItems = [];
         if (snapshot.exists()) {
           const data = snapshot.val();
           Object.keys(data).forEach(key => {
-            customQuickItems.push({
-              id: key, 
-              category: data[key].category,
-              content: data[key].content
-            });
+            customQuickItems.push({ id: key, category: data[key].category, content: data[key].content });
           });
         }
         renderQuick(); 
@@ -790,32 +887,13 @@
           tbl.innerHTML = `<caption>${escapeHtml(cat)}</caption>` + grps[cat].map(i => `
             <tr class="custom-row" data-id="${i.id}">
               <td class="content-cell" data-text="${escapeHtml(i.content)}">${escapeHtml(i.content).replace(/\n/g, '<br>')}</td>
-              <td class="copy-cell" style="white-space: nowrap; text-align: right;">
-                <button class="icon-action-btn edit-quick-btn" data-id="${i.id}" title="Sửa mẫu này"><i class="fas fa-edit"></i></button>
-                <button class="icon-action-btn delete-quick-btn" data-id="${i.id}" title="Xóa mẫu này"><i class="fas fa-trash-alt"></i></button>
-              </td>
             </tr>`).join('');
           el.quickCopyGrid.appendChild(tbl);
         });
 
         document.querySelectorAll('.custom-table .content-cell').forEach(btn => btn.addEventListener('click', e => { 
-          e.stopPropagation(); 
-          const t = e.currentTarget.getAttribute('data-text'); 
-          if(t) navigator.clipboard.writeText(t).then(()=>showToast('Đã sao chép!')); 
+          e.stopPropagation(); const t = e.currentTarget.getAttribute('data-text'); if(t) navigator.clipboard.writeText(t).then(()=>showToast('Đã sao chép!')); 
         }));
-
-        document.querySelectorAll('.custom-table .edit-quick-btn').forEach(btn => btn.addEventListener('click', e => {
-          e.stopPropagation();
-          const id = e.currentTarget.getAttribute('data-id');
-          openEditModal(id);
-        }));
-
-        document.querySelectorAll('.custom-table .delete-quick-btn').forEach(btn => btn.addEventListener('click', e => {
-          e.stopPropagation();
-          const id = e.currentTarget.getAttribute('data-id');
-          deleteItem(id);
-        }));
-
         document.querySelectorAll('.custom-table .custom-row').forEach(tr => tr.addEventListener('contextmenu', e => { 
           e.preventDefault(); contextMenuTargetId = tr.dataset.id; el.contextMenu.style.left=e.pageX+'px'; el.contextMenu.style.top=e.pageY+'px'; el.contextMenu.classList.remove('hidden'); 
         }));
@@ -837,12 +915,13 @@
 
       function deleteItem(id) {
         if(confirm('Xóa mẫu này?')) { 
-          remove(ref(db, `quickCopyItems/${id}`))
-            .then(() => showToast('Đã xóa'))
-            .catch(err => showToast('Lỗi: ' + err.message));
+          remove(ref(db, `quickCopyItems/${id}`)).then(() => showToast('Đã xóa')).catch(err => showToast('Lỗi: ' + err.message));
         }
       }
-
+	  function switchTab(tabId) {
+        el.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+        el.tabContents.forEach(c => c.classList.toggle('active', c.id === tabId));
+      }
       // 8. EVENTS
       function bind() {
         el.quickPasteBtn.addEventListener('click', async () => { try { el.dataTextarea.value = await navigator.clipboard.readText(); if(autoSummarizeEnabled) performSummarize(); showToast('Đã dán dữ liệu'); } catch(e) { showToast('Vui lòng dùng Ctrl+V'); }});
@@ -859,14 +938,43 @@
         el.autoToggleBtn.addEventListener('click', () => { autoSummarizeEnabled=!autoSummarizeEnabled; localStorage.setItem(STORAGE_KEYS.AUTO_SUMMARIZE, autoSummarizeEnabled); updateUI(); showToast(autoSummarizeEnabled?'Bật tự động tóm tắt':'Tắt tự động tóm tắt'); });
         el.themeToggle.addEventListener('click', () => setTheme(!document.body.classList.contains('dark-mode')));
         
-        el.settingsBtn.addEventListener('click', () => { tempAbbr = {...currentAbbrMap}; renderAbbr(); el.settingsModal.classList.remove('hidden'); });
-        el.btnCancelSettings.addEventListener('click', () => el.settingsModal.classList.add('hidden'));
-        el.btnSaveSettings.addEventListener('click', () => { Object.keys(tempAbbr).forEach(k => { if(tempAbbr[k]==='') { if(DEFAULT_ABBR_MAP[k]) tempAbbr[k]=DEFAULT_ABBR_MAP[k]; else delete tempAbbr[k]; }}); currentAbbrMap={...tempAbbr}; localStorage.setItem(STORAGE_KEYS.ABBR_MAP, JSON.stringify(currentAbbrMap)); el.settingsModal.classList.add('hidden'); showToast('Đã lưu viết tắt'); if(currentRows.length){renderTable(); updateSummary();} });
-        el.abbrInputsContainer.addEventListener('input', e => { if(e.target.classList.contains('abbr-row-input')) tempAbbr[e.target.dataset.key] = e.target.value.trim(); });
-        el.abbrInputsContainer.addEventListener('click', e => { const btn = e.target.closest('.delete-abbr-btn'); if(btn){ delete tempAbbr[btn.dataset.key]; renderAbbr(); }});
-        el.btnAddAbbr.addEventListener('click', () => { const k=el.newAbbrKey.value.trim(), v=el.newAbbrValue.value.trim(); if(k&&v){ tempAbbr[k]=v; el.newAbbrKey.value=''; el.newAbbrValue.value=''; renderAbbr(); } else showToast('Nhập đủ tên và viết tắt!'); });
-        el.btnResetAbbr.addEventListener('click', () => { if(confirm("Khôi phục viết tắt mặc định?")){ tempAbbr={...DEFAULT_ABBR_MAP}; renderAbbr(); }});
-        
+
+        el.tabBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+        el.settingsBtn.addEventListener('click', () => { 
+          resetAbbrForm(); 
+          switchTab('tabList');
+          el.settingsModal.classList.remove('hidden'); 
+        });
+
+        el.btnCloseSettings.addEventListener('click', () => el.settingsModal.classList.add('hidden'));
+
+        el.btnCancelEditAbbr.addEventListener('click', () => {
+          resetAbbrForm();
+          switchTab('tabList');
+        });
+
+        el.btnAddAbbr.addEventListener('click', () => {
+          const k = el.newAbbrKey.value.trim(), v = el.newAbbrValue.value.trim(), id = el.editAbbrId.value;
+          if (k && v) {
+            if (id) {
+              update(ref(db, `abbreviations/${id}`), { raw: k, short: v })
+                .then(() => { showToast('Đã cập nhật!'); resetAbbrForm(); switchTab('tabList'); });
+            } else {
+              push(abbrRef, { raw: k, short: v })
+                .then(() => { showToast('Đã thêm mới!'); resetAbbrForm(); switchTab('tabList'); });
+            }
+          } else { showToast('Vui lòng nhập đủ Tên gốc và Viết tắt!'); }
+        });
+
+        el.btnResetAbbr.addEventListener('click', () => {
+          if (confirm("CẢNH BÁO: Xóa toàn bộ viết tắt hiện tại và khôi phục mặc định?")) {
+            set(abbrRef, null).then(() => {
+              showToast('Đã khôi phục dữ liệu gốc!');
+            });
+          }
+        });
+
         el.formatDropdownToggle.addEventListener('click', e => { e.stopPropagation(); el.formatDropdownMenu.classList.toggle('hidden'); });
         document.addEventListener('click', () => el.formatDropdownMenu.classList.add('hidden'));
         el.formatItems.forEach(i => i.addEventListener('click', e => { e.stopPropagation(); copyFormat=i.dataset.value; localStorage.setItem(STORAGE_KEYS.COPY_FORMAT, copyFormat); updateUI(); el.formatDropdownMenu.classList.add('hidden'); updateSummary(); }));
