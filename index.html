@@ -67,24 +67,21 @@
 	.container { 
       max-width: 1200px; 
       width: 100%; 
-      background-color: rgba(255, 255, 255, 0.85); 
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.75) 100%); 
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border-radius: 36px; 
       padding: 36px 36px 48px; 
-      box-shadow: var(--shadow-md); 
-      border: 1px solid var(--border-light); 
-      transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s; 
+      box-shadow: 0 20px 40px rgba(0, 20, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1); 
+      border: 1px solid rgba(255, 255, 255, 0.4); 
+      transition: all 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1); 
     }
     
-	body.dark-mode .container { 
-      background-color: rgba(30, 36, 54, 0.85); 
-      border-color: var(--border-dark); 
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); 
+    body.dark-mode .container { 
+      background: linear-gradient(135deg, rgba(30, 36, 54, 0.85) 0%, rgba(15, 20, 30, 0.75) 100%); 
+      border: 1px solid rgba(255, 255, 255, 0.08); 
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05); 
     }
-	}
-    .container { max-width: 1200px; width: 100%; background-color: var(--surface-light); border-radius: 36px; padding: 36px 36px 48px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s; }
-    body.dark-mode .container { background-color: var(--surface-dark); border-color: var(--border-dark); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
 
     /* ---------- ANIMATIONS ---------- */
 	@keyframes flipIn3D {
@@ -160,7 +157,13 @@
     .quick-paste-btn:hover { background: var(--primary-light); color: white; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(58, 95, 208, 0.2); }
     body.dark-mode .quick-paste-btn { background: rgba(109, 142, 255, 0.1); color: var(--primary-dark); border-color: rgba(109, 142, 255, 0.2); }
     body.dark-mode .quick-paste-btn:hover { background: var(--primary-dark); color: #0b0f1a; }
-
+	
+	.clear-text-btn { position: absolute; right: 20px; top: 20px; background: rgba(217, 83, 79, 0.1); color: #d9534f; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; z-index: 5; }
+    .clear-text-btn:hover { background: #d9534f; color: white; transform: rotate(90deg); }
+    .clear-text-btn.hidden { opacity: 0; pointer-events: none; transform: scale(0.8); }
+    body.dark-mode .clear-text-btn { background: rgba(255, 138, 122, 0.1); color: #ff8a7a; }
+    body.dark-mode .clear-text-btn:hover { background: #ff8a7a; color: #0f141e; }
+	
     textarea { width: 100%; height: 180px; padding: 24px 24px 24px 64px; border: 2px solid var(--border-light); border-radius: 24px; font-family: 'Inter', monospace; font-size: 15px; line-height: 1.7; background-color: var(--surface-light); resize: vertical; outline: none; transition: var(--transition); color: var(--text-light); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02); scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
     textarea::-webkit-scrollbar { width: 8px; } textarea::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
 
@@ -314,10 +317,42 @@
     body.dark-mode .dropdown-item:hover { background: #2f3a5c; color: var(--primary-dark); }
     body.dark-mode .dropdown-item.active { background: #2a3553; color: var(--primary-dark); border-left-color: var(--primary-dark); }
 
-    .summary-card { background-color: var(--surface-light); border-radius: 24px; padding: 28px 32px; border: 1px solid var(--border-light); margin-bottom: 36px; font-size: 17px; line-height: 1.8; color: var(--text-light); border-left: 6px solid var(--primary-light); box-shadow: inset 0 2px 10px rgba(0,0,0,0.01), var(--shadow-sm); max-height: 400px; overflow-y: auto; white-space: normal; word-break: break-word; transition: var(--transition); scrollbar-width: thin; }
-    .summary-card::-webkit-scrollbar { width: 8px; } .summary-card::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-    .summary-card:hover { box-shadow: var(--shadow-md); }
-    body.dark-mode .summary-card { background-color: var(--surface-dark); border-color: var(--border-dark); color: var(--text-dark); border-left-color: var(--primary-dark); }
+    .summary-card { 
+      background-color: var(--surface-light); 
+      /* Thêm hiệu ứng lưới y khoa cực mờ */
+      background-image: radial-gradient(var(--border-light) 1px, transparent 1px);
+      background-size: 20px 20px;
+      border-radius: 24px; 
+      padding: 28px 32px; 
+      border: 1px solid var(--border-light); 
+      margin-bottom: 36px; 
+      font-size: 17px; 
+      line-height: 2; /* Tăng dãn dòng để dễ đọc hơn */
+      letter-spacing: 0.2px;
+      color: var(--text-light); 
+      border-left: 6px solid var(--primary-light); 
+      /* Ánh sáng hắt vào từ bên trong tạo cảm giác thẻ giấy */
+      box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.9), var(--shadow-sm); 
+      max-height: 400px; 
+      overflow-y: auto; 
+      white-space: normal; 
+      word-break: break-word; 
+      transition: var(--transition); 
+      scrollbar-width: thin; 
+    }
+    .summary-card::-webkit-scrollbar { width: 8px; } 
+    .summary-card::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    .summary-card:hover { box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.8), var(--shadow-md); transform: translateY(-1px); }
+    
+    body.dark-mode .summary-card { 
+      background-color: var(--surface-dark); 
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      border-color: var(--border-dark); 
+      color: var(--text-dark); 
+      border-left-color: var(--primary-dark);
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    body.dark-mode .summary-card:hover { box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4); }
     body.dark-mode .summary-card::-webkit-scrollbar-thumb { background-color: #475569; }
 	/* ---------- MORE DROPDOWN---------- */
     .more-dropdown { position: relative; display: inline-block; }
@@ -460,8 +495,22 @@
     body.dark-mode .status-abnormal { background-color: #5e3535; color: var(--abnormal-dark); border-left-color: var(--abnormal-dark); }
     .status-unknown { background-color: #f1f5f9; color: var(--unknown-light); border-left-color: var(--unknown-light); }
     body.dark-mode .status-unknown { background-color: #334155; color: var(--unknown-dark); border-left-color: var(--unknown-dark); }
-    .abnormal-value { color: #d9534f; font-weight: 700; }
-    body.dark-mode .abnormal-value { color: #ff8a7a; }
+    .abnormal-value { 
+      color: #c44542; 
+      font-weight: 700; 
+      background-color: #fff0f0; 
+      padding: 2px 6px; 
+      border-radius: 6px; 
+      border: 1px solid #ffdcdc;
+      box-shadow: 0 2px 4px rgba(196, 69, 66, 0.08);
+      display: inline-block;
+      line-height: 1.2;
+    }
+    body.dark-mode .abnormal-value { 
+      color: #ffb4ab; 
+      background-color: rgba(255, 138, 122, 0.15); 
+      border-color: rgba(255, 138, 122, 0.25);
+    }
     #tableBody tr { opacity: 0; transform: translateY(10px); animation: rowFadeIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards; }
     @keyframes rowFadeIn { to { opacity: 1; transform: translateY(0); } }
     
@@ -532,7 +581,6 @@
     }
     .content-cell:hover { background-color: #f8fafc; color: var(--primary-light); box-shadow: inset 4px 0 0 var(--primary-light); }
     body.dark-mode .content-cell:hover { background-color: #1e293b; color: var(--primary-dark); box-shadow: inset 4px 0 0 var(--primary-dark); }
-   /* Tạo tia sáng */
     .content-cell::after {
       content: '';
       position: absolute;
@@ -550,7 +598,6 @@
       background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
     }
 
-    /* Khi hover, tia sáng chạy qua */
     .content-cell:hover::after {
       animation: cellShimmer 0.6s ease-out forwards;
     }
@@ -688,13 +735,9 @@
     </div>
 
     <div class="input-section">
-      <div class="input-label">
-        <span><i class="fas fa-keyboard"></i> Chỉ số đầu vào</span>
-        <span class="stats-badge" id="rowCountBadge" style="padding: 6px 16px; font-size: 13.5px;"><i class="fas fa-database"></i> 0 chỉ số</span>
-      </div>
       <div class="textarea-wrapper">
         <i class="fas fa-table"></i>
-        <button id="quickPasteBtn" class="quick-paste-btn" title="Dán dữ liệu từ Clipboard"><i class="fas fa-paste"></i> Dán nhanh</button>
+		<button id="clearTextBtn" class="clear-text-btn hidden" title="Xóa nội dung"><i class="fas fa-times"></i></button>
         <textarea id="dataInput" placeholder="Ví dụ:&#10;1	(H01) Số lượng hồng cầu	4.60	4 - 5.8	x10^12/lít&#10;2	(H02) Huyết sắc tố	90	140 - 160	g/L&#10;3	(H03) Số lượng tiểu cầu	420	150 - 400	x10^9/L&#10;4	(B04) Glucose	6.5	4.1-5.9	mmol/L"></textarea>
       </div>
       <div class="button-strip">
@@ -953,7 +996,8 @@
         quickCopyGrid: document.getElementById('quickCopyGrid'), btnAddQuickCopy: document.getElementById('btnAddQuickCopy'), itemModal: document.getElementById('itemModal'),
         modalTitle: document.getElementById('modalTitle'), catSelect: document.getElementById('modalCategorySelect'), catInput: document.getElementById('modalCategoryInput'),
         modalContent: document.getElementById('modalContent'), modalCancel: document.getElementById('modalCancel'), modalSave: document.getElementById('modalSave'),
-        contextMenu: document.getElementById('contextMenu'), menuEdit: document.getElementById('menuEdit'), menuDelete: document.getElementById('menuDelete')
+        contextMenu: document.getElementById('contextMenu'), menuEdit: document.getElementById('menuEdit'), menuDelete: document.getElementById('menuDelete'),
+		clearTextBtn: document.getElementById('clearTextBtn') 
       };
 
       // 4. UTILITIES
@@ -1034,7 +1078,6 @@
                .join(copyFormat === 'newline' ? '\n' : (copyFormat === 'semicolon' ? '; ' : ', '));
       }
       function updateStats() {
-        el.rowCountBadge.innerHTML = `<i class="fas fa-database"></i> ${currentRows.length} dòng`;
         el.totalIndicatorsSpan.innerHTML = `<i class="fas fa-calculator"></i> ${currentRows.length}`;
         el.abnormalIndicatorsSpan.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${currentRows.filter(r => getStatus(r.value, r.refRange) === 'abnormal').length}`;
         el.selectedCountBadge.innerHTML = `<i class="fas fa-check-circle"></i> Đã chọn: ${selectedIndices.length}/${currentRows.length}`;
@@ -1232,10 +1275,23 @@
       function bind() {
 		el.dataTextarea.addEventListener('focus', () => document.body.classList.add('focus-mode'));
         el.dataTextarea.addEventListener('blur', () => document.body.classList.remove('focus-mode'));
-        el.quickPasteBtn.addEventListener('click', async () => { try { el.dataTextarea.value = await navigator.clipboard.readText(); if(autoSummarizeEnabled) performSummarize(); showToast('Đã dán dữ liệu'); } catch(e) { showToast('Vui lòng dùng Ctrl+V'); }});
+		el.dataTextarea.addEventListener('input', () => {
+          if (el.dataTextarea.value.trim().length > 0) {
+            el.clearTextBtn.classList.remove('hidden');
+          } else {
+            el.clearTextBtn.classList.add('hidden');
+          }
+        });
+
+        el.clearTextBtn.addEventListener('click', () => {
+          el.clearBtn.click();
+          el.clearTextBtn.classList.add('hidden');
+        });
         el.dataTextarea.addEventListener('paste', () => { if(autoSummarizeEnabled) setTimeout(performSummarize, 50); });
         el.summarizeBtn.addEventListener('click', performSummarize);
         el.clearBtn.addEventListener('click', () => { 
+          el.clearTextBtn.classList.add('hidden');
+          
           el.dataTextarea.value=''; currentRows=[]; selectedIndices=[]; renderTable(); 
           
           document.getElementById('summaryWrapper').classList.add('is-empty');
@@ -1250,14 +1306,12 @@
             navigator.clipboard.writeText(t).then(() => {
               showToast('Đã copy tóm tắt');
               
-              // Đổi trạng thái nút bấm tại chỗ
               const originalHTML = el.copySummaryBtn.innerHTML;
               const originalBg = el.copySummaryBtn.style.background;
               
               el.copySummaryBtn.innerHTML = '<i class="fas fa-check"></i> Đã Copy';
-              el.copySummaryBtn.style.background = 'var(--normal-light)'; // Chuyển sang xanh lá
+              el.copySummaryBtn.style.background = 'var(--normal-light)';
               
-              // Trả lại trạng thái cũ sau 2 giây
               setTimeout(() => {
                 el.copySummaryBtn.innerHTML = originalHTML;
                 el.copySummaryBtn.style.background = originalBg;
