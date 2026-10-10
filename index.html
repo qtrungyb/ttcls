@@ -169,7 +169,7 @@
     body.dark-mode .clear-text-btn { background: rgba(255, 138, 122, 0.1); color: #ff8a7a; }
     body.dark-mode .clear-text-btn:hover { background: #ff8a7a; color: #0f141e; }
 	
-    textarea { width: 100%; height: 180px; padding: 24px 24px 24px 64px; border: 2px solid var(--border-light); border-radius: 24px; font-family: 'Inter', monospace; font-size: 15px; line-height: 1.7; background-color: var(--surface-light); resize: vertical; outline: none; transition: var(--transition); color: var(--text-light); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02); scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    textarea { width: 100%; height: 180px; padding: 24px 24px 24px 64px; border: 2px solid var(--border-light); border-radius: 24px; font-family: 'Inter', monospace; font-size: 15px; line-height: 1.7; background-color: var(--surface-light); resize: vertical; outline: none; transition: border-color 0.25s, box-shadow 0.25s; color: var(--text-light); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02); scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
     textarea::-webkit-scrollbar { width: 8px; } textarea::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
 
     textarea:focus { 
@@ -335,14 +335,15 @@
       letter-spacing: 0.2px;
       color: var(--text-light); 
       border-left: 6px solid var(--primary-light); 
-      /* Ánh sáng hắt vào từ bên trong tạo cảm giác thẻ giấy */
       box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.9), var(--shadow-sm); 
       max-height: 400px; 
       overflow-y: auto; 
       white-space: normal; 
       word-break: break-word; 
-      transition: var(--transition); 
+      transition: box-shadow 0.25s ease, transform 0.25s ease, background-color 0.3s ease, border-color 0.3s ease; 
       scrollbar-width: thin; 
+	  content-visibility: auto;
+      contain-intrinsic-size: 150px;
     }
     .summary-card::-webkit-scrollbar { width: 8px; } 
     .summary-card::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
@@ -457,7 +458,7 @@
     body.dark-mode .selected-count-badge { background: linear-gradient(145deg, #4a70e0, #6d8eff); color: #0b0f1a; }
     
     /* ---------- TABLE ---------- */
-    .table-container { border-radius: 24px; background-color: var(--surface-light); border: 1px solid var(--border-light); overflow: hidden; margin-top: 8px; transition: var(--transition); box-shadow: var(--shadow-md); }
+    .table-container { border-radius: 24px; background-color: var(--surface-light); border: 1px solid var(--border-light); overflow: hidden; margin-top: 8px; transition: box-shadow 0.25s ease, background-color 0.3s ease, border-color 0.3s ease; box-shadow: var(--shadow-md); content-visibility: auto; }
     body.dark-mode .table-container { background-color: var(--surface-dark); border-color: var(--border-dark); }
     .table-scroll { overflow-x: auto; max-height: 500px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
     .table-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -972,6 +973,7 @@
       let currentRows = [], selectedIndices = [];
       let customQuickItems = [];
       let editingQuickId = null, contextMenuTargetId = null;
+      let isTableDirty = false;
 
       // 3. DOM ELEMENTS
       const el = {
@@ -1014,44 +1016,114 @@
       }
       function parseNumber(str) { const m = str?.replace(/,/g, '.').replace(/\s+/g, '').match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : NaN; }
       
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => { clearTimeout(timeout); func(...args); };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+      
+      const nameRegex = /^\([^)]+\)\s*(.*)/;
+      const innerContentRegex = /\s*\(([^)]+)\)/g;
+      const validKeepText = ['inr', 'bệnh/ chứng r', 'bệnh/chứng r', 'alt', 'ast'];
+      const cleanNameCache = {};
+
       function cleanName(raw) {
-        let str = raw?.trim().replace(/^["']|["']$/g, '') || '';
-        let m = str.match(/^\([^)]+\)\s*(.*)/);
+        if (!raw) return '';
+        if (cleanNameCache[raw]) return cleanNameCache[raw];
+
+        let str = raw.trim().replace(/^["']|["']$/g, '');
+        let m = str.match(nameRegex);
         let name = m ? m[1].trim() : str;
-        name = name.replace(/\s*\(([^)]+)\)/g, function(match, innerContent) {
+        name = name.replace(innerContentRegex, function(match, innerContent) {
           let text = innerContent.trim().toLowerCase();
-          if (text === 'inr' || text === 'bệnh/ chứng r' || text === 'bệnh/chứng r' || text === 'alt' || text === 'ast') {
-            return match; 
-          }
+          if (validKeepText.includes(text)) return match; 
           return ''; 
         });
-        return name.trim();
+        
+        const result = name.trim();
+        cleanNameCache[raw] = result;
+        return result;
       }
 
+      const rangeRegex = /(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/;
+      const leRegex = /(<=|≤)\s*(\d+[.,]?\d*)/;
+      const lRegex = /<\s*(\d+[.,]?\d*)/;
+      const geRegex = /(>=|≥)\s*(\d+[.,]?\d*)/;
+      const gRegex = />\s*(\d+[.,]?\d*)/;
+
       function getStatus(valStr, rangeStr) {
-        let val = parseNumber(valStr); if (isNaN(val) || !rangeStr) return 'unknown';
-        let r = rangeStr.match(/(\d+[.,]?\d*)\s*[-–]\s*(\d+[.,]?\d*)/); if (r) return (val < parseNumber(r[1]) || val > parseNumber(r[2])) ? 'abnormal' : 'normal';
-        let le = rangeStr.match(/(<=|≤)\s*(\d+[.,]?\d*)/); if (le) return val <= parseNumber(le[2]) ? 'normal' : 'abnormal';
-        let l = rangeStr.match(/<\s*(\d+[.,]?\d*)/); if (l) return val < parseNumber(l[1]) ? 'normal' : 'abnormal';
-        let ge = rangeStr.match(/(>=|≥)\s*(\d+[.,]?\d*)/); if (ge) return val >= parseNumber(ge[1]) ? 'normal' : 'abnormal';
-        let g = rangeStr.match(/>\s*(\d+[.,]?\d*)/); if (g) return val > parseNumber(g[1]) ? 'normal' : 'abnormal'; return 'unknown';
+        let val = parseNumber(valStr); 
+        if (isNaN(val) || !rangeStr) return 'unknown';
+        
+        let r = rangeStr.match(rangeRegex); 
+        if (r) return (val < parseNumber(r[1]) || val > parseNumber(r[2])) ? 'abnormal' : 'normal';
+        
+        let le = rangeStr.match(leRegex); 
+        if (le) return val <= parseNumber(le[2]) ? 'normal' : 'abnormal';
+        
+        let l = rangeStr.match(lRegex); 
+        if (l) return val < parseNumber(l[1]) ? 'normal' : 'abnormal';
+        
+        let ge = rangeStr.match(geRegex); 
+        if (ge) return val >= parseNumber(ge[1]) ? 'normal' : 'abnormal';
+        
+        let g = rangeStr.match(gRegex); 
+        if (g) return val > parseNumber(g[1]) ? 'normal' : 'abnormal'; 
+        
+        return 'unknown';
       }
 
       // 5. CORE LOGIC
       function parseInputToRows(input) {
-        return input.split(/\r?\n/).map(l => l.trim().split('\t').map(c => c.trim()).filter(c => c)).filter(cols => cols.length >= 3 && /^\d+$/.test(cols[0]))
-          .map(cols => ({ stt: cols[0], rawName: cols[1], cleanName: cleanName(cols[1]), value: cols[2], refRange: cols[3] || '', unit: cols[4] || '' }));
+        const lines = input.split(/\r?\n/);
+        const rows = [];
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          const cols = line.split('\t');
+          const validCols = [];
+          for (let j = 0; j < cols.length; j++) {
+              const c = cols[j].trim();
+              if (c) validCols.push(c);
+          }
+          
+          if (validCols.length >= 3 && /^\d+$/.test(validCols[0])) {
+             rows.push({
+               stt: validCols[0],
+               rawName: validCols[1],
+               cleanName: cleanName(validCols[1]),
+               value: validCols[2],
+               refRange: validCols[3] || '',
+               unit: validCols[4] || ''
+             });
+          }
+        }
+        return rows;
       }
       
       function getSummaryPartsArray(rows, forHtml = true) {
-        return rows.filter(r => r.value && r.value.trim().toLowerCase() !== '- neg').map(r => {
+        const parts = [];
+        for (let i = 0; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r.value || r.value.trim().toLowerCase() === '- neg') continue;
+          
           let n = (showAbbr && currentAbbrMap[r.cleanName]) ? currentAbbrMap[r.cleanName] : r.cleanName;
           let v = forHtml ? escapeHtml(r.value) : r.value;
-          if (forHtml && getStatus(r.value, r.refRange) === 'abnormal') v = `<span class="abnormal-value">${v}</span>`;
+          
+          if (forHtml && getStatus(r.value, r.refRange) === 'abnormal') {
+            v = `<span class="abnormal-value">${v}</span>`;
+          }
+          
           let u = (showUnit && r.unit) ? ` ${forHtml ? escapeHtml(r.unit) : r.unit}` : '';
           let sep = ['T3', 'T4', 'TSH', 'Tg'].includes(n) ? ': ' : ' ';
-          return `${forHtml ? escapeHtml(n) : n}${sep}${v}${u}`;
-        });
+          
+          parts.push(`${forHtml ? escapeHtml(n) : n}${sep}${v}${u}`);
+        }
+        return parts;
       }
 
       function updateSummary() {
@@ -1088,7 +1160,7 @@
         el.selectedCountBadge.innerHTML = `<i class="fas fa-check-circle"></i> Đã chọn: ${selectedIndices.length}/${currentRows.length}`;
       }
 
-      // 6. TABLE
+      // 6. TABLE      
       function renderTable() {
         el.tableBody.innerHTML = currentRows.map((r, i) => {
           const st = getStatus(r.value, r.refRange);
@@ -1101,43 +1173,69 @@
             <td>${escapeHtml(r.stt)}</td><td>${escapeHtml(r.rawName)}</td><td>${escapeHtml(n)}</td><td>${valCell}</td><td>${escapeHtml(r.refRange)}</td><td>${escapeHtml(r.unit)}</td><td>${stHtml}</td>
           </tr>`;
         }).join('');
-        highlightRows(); updateStats();
+        updateStats();
       }
-      function highlightRows() {
-        document.querySelectorAll('#tableBody tr').forEach(tr => {
-          const cb = tr.querySelector('.row-select');
-          if (cb) cb.checked ? tr.classList.add('selected') : tr.classList.remove('selected');
-        });
+
+      function syncSelection(indices) { 
+        selectedIndices = indices; 
+        document.querySelectorAll('.row-select').forEach(cb => {
+            cb.checked = indices.includes(parseInt(cb.dataset.index));
+            const tr = cb.closest('tr');
+            if (cb.checked) tr.classList.add('selected');
+            else tr.classList.remove('selected');
+        }); 
+        updateStats(); 
+        updateSummary(); 
       }
-      function syncSelection(indices) { selectedIndices = indices; document.querySelectorAll('.row-select').forEach(cb => cb.checked = indices.includes(parseInt(cb.dataset.index))); updateStats(); updateSummary(); highlightRows(); }
 
       function performSummarize() {
         const rows = parseInputToRows(el.dataTextarea.value);
+        
         if (!rows.length) { 
           const wrapper = document.querySelector('.textarea-wrapper');
           wrapper.classList.remove('animate-shake');
-          void wrapper.offsetWidth;
-          wrapper.classList.add('animate-shake');
+          
+          setTimeout(() => wrapper.classList.add('animate-shake'), 10);
           
           showToast('Không có dữ liệu hợp lệ'); 
-          currentRows=[]; selectedIndices=[]; renderTable(); updateSummary(); 
+          currentRows=[]; selectedIndices=[]; 
+          if (!el.tableContainer.classList.contains('hidden')) renderTable(); 
+          updateSummary(); 
           el.tableContainer.classList.add('hidden'); el.selectionToolbar.classList.add('hidden'); 
           return; 
         }
+        
         currentRows = rows;
         const main = currentRows.reduce((a, r, i) => SPECIAL_NAMES.includes(r.cleanName) ? [...a, i] : a, []);
         selectedIndices = main.length ? main : currentRows.map((_, i) => i);
-        renderTable(); updateSummary();
-		
-        const txt = getSummaryPlainText(); if (txt) navigator.clipboard.writeText(txt).catch(()=>{});
-        el.tableContainer.classList.add('hidden'); el.selectionToolbar.classList.add('hidden');
-        el.toggleIcon.className = 'fas fa-chevron-right'; el.toggleTableBtn.innerHTML = '<i class="fas fa-chevron-right"></i> Xem bảng chi tiết';
+
         el.summaryText.classList.remove('animate-pulse', 'animate-flip-in');
-        void el.summaryText.offsetWidth;
-        el.summaryText.classList.add('animate-pulse', 'animate-flip-in');
-        document.body.classList.remove('focus-mode');
-        el.dataTextarea.blur();
-        showToast('Đã tóm tắt & sao chép vào Clipboard');
+
+        requestAnimationFrame(() => {
+          if (!el.tableContainer.classList.contains('hidden')) {
+              renderTable(); 
+          } else {
+              isTableDirty = true; 
+          }
+          
+          updateSummary();
+          
+          el.tableContainer.classList.add('hidden'); 
+          el.selectionToolbar.classList.add('hidden');
+          el.toggleIcon.className = 'fas fa-chevron-right'; 
+          el.toggleTableBtn.innerHTML = '<i class="fas fa-chevron-right"></i> Xem bảng chi tiết';
+          
+          document.body.classList.remove('focus-mode');
+          el.dataTextarea.blur();
+
+          setTimeout(() => {
+            el.summaryText.classList.add('animate-pulse');
+            
+            const txt = getSummaryPlainText(); 
+            if (txt) navigator.clipboard.writeText(txt).catch(()=>{});
+            showToast('Đã tóm tắt & sao chép vào Clipboard');
+          }, 40); 
+        });
       }
 
       // 7. UI & MODALS
@@ -1266,19 +1364,22 @@
 				if (e.target.checked && !selectedIndices.includes(i)) selectedIndices.push(i);
 				else selectedIndices = selectedIndices.filter(x => x !== i);
 				selectedIndices.sort((a,b) => a-b);
-				updateStats(); updateSummary(); highlightRows();
+				
+                const tr = e.target.closest('tr');
+                if (e.target.checked) tr.classList.add('selected');
+                else tr.classList.remove('selected');
+                
+				updateStats(); 
+                updateSummary(); 
 			  }
 			});
 
-			// 2. Lắng nghe sự kiện Click vào bất kỳ đâu trên 1 dòng để tick Checkbox
 			el.tableBody.addEventListener('click', function(e) {
 			  const tr = e.target.closest('tr');
 			  if (tr) {
 				const cb = tr.querySelector('.row-select');
-				// Đảm bảo không trigger 2 lần nếu click thẳng vào checkbox hoặc badge
 				if (cb && !e.target.classList.contains('row-select') && !e.target.closest('.status-badge')) {
 				  cb.checked = !cb.checked;
-				  // Kích hoạt sự kiện change (bắn bong bóng lên event bên trên)
 				  cb.dispatchEvent(new Event('change', { bubbles: true })); 
 				}
 			  }
@@ -1303,19 +1404,26 @@
         });
 		el.dataTextarea.addEventListener('focus', () => document.body.classList.add('focus-mode'));
         el.dataTextarea.addEventListener('blur', () => document.body.classList.remove('focus-mode'));
+        
+        const handleTextareaInput = debounce(() => {
+          if (autoSummarizeEnabled) {
+            performSummarize();
+          }
+        }, 200);
+
 		el.dataTextarea.addEventListener('input', () => {
-          if (el.dataTextarea.value.trim().length > 0) {
+          if (el.dataTextarea.value.length > 0) {
             el.clearTextBtn.classList.remove('hidden');
           } else {
             el.clearTextBtn.classList.add('hidden');
           }
+          handleTextareaInput();
         });
 
         el.clearTextBtn.addEventListener('click', () => {
           el.clearBtn.click();
           el.clearTextBtn.classList.add('hidden');
         });
-        el.dataTextarea.addEventListener('paste', () => { if(autoSummarizeEnabled) setTimeout(performSummarize, 50); });
         el.summarizeBtn.addEventListener('click', performSummarize);
         el.clearBtn.addEventListener('click', () => { 
           el.clearTextBtn.classList.add('hidden');
@@ -1349,7 +1457,17 @@
         });
         el.toggleUnitBtn.addEventListener('click', () => { showUnit=!showUnit; localStorage.setItem(STORAGE_KEYS.SHOW_UNIT, showUnit); updateUI(); if(currentRows.length) updateSummary(); });
         el.toggleAbbrBtn.addEventListener('click', () => { showAbbr=!showAbbr; localStorage.setItem(STORAGE_KEYS.SHOW_ABBR, showAbbr); updateUI(); if(currentRows.length){ renderTable(); updateSummary(); }});
-        el.toggleTableBtn.addEventListener('click', () => { const h = el.tableContainer.classList.toggle('hidden'); el.selectionToolbar.classList.toggle('hidden'); el.toggleIcon.className = h ? 'fas fa-chevron-right' : 'fas fa-chevron-down'; el.toggleTableBtn.innerHTML = `<i class="${el.toggleIcon.className}"></i> ${h ? 'Xem bảng chi tiết' : 'Ẩn bảng chi tiết'}`; });
+        el.toggleTableBtn.addEventListener('click', () => { 
+            if (typeof isTableDirty !== 'undefined' && isTableDirty && el.tableContainer.classList.contains('hidden')) {
+                renderTable();
+                isTableDirty = false;
+            }
+            
+            const h = el.tableContainer.classList.toggle('hidden'); 
+            el.selectionToolbar.classList.toggle('hidden'); 
+            el.toggleIcon.className = h ? 'fas fa-chevron-right' : 'fas fa-chevron-down'; 
+            el.toggleTableBtn.innerHTML = `<i class="${el.toggleIcon.className}"></i> ${h ? 'Xem bảng chi tiết' : 'Ẩn bảng chi tiết'}`; 
+        });
         el.selectMainBtn.addEventListener('click', () => syncSelection(currentRows.reduce((a,r,i)=>SPECIAL_NAMES.includes(r.cleanName)?[...a,i]:a,[])));
         el.selectAbnormalBtn.addEventListener('click', () => syncSelection(currentRows.reduce((a,r,i)=>getStatus(r.value,r.refRange)==='abnormal'?[...a,i]:a,[])));
         el.selectAllBtn.addEventListener('click', () => syncSelection(currentRows.map((_,i)=>i))); el.deselectAllBtn.addEventListener('click', () => syncSelection([]));
@@ -1461,7 +1579,7 @@
         });
       const tableScrollEl = document.querySelector('.table-scroll');
       if (tableScrollEl) {
-        let isTableScrolling = false; // Thêm cờ cho table
+        let isTableScrolling = false;
         
         tableScrollEl.addEventListener('scroll', () => {
           if (!isTableScrolling) {
