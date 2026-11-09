@@ -1,0 +1,105 @@
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--r-md);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background var(--t), color var(--t), border-color var(--t), box-shadow var(--t);
+  white-space: nowrap;
+}
+.btn.icon-only { padding: 9px 11px; }
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 6px -2px rgba(13, 148, 136, 0.4);
+}
+.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px -2px rgba(13, 148, 136, 0.5); }
+.btn-primary:active { transform: translateY(1px); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary-text);
+  border: 1px solid var(--primary);
+}
+.btn-outline:hover { background: var(--primary-faint); }
+.btn-outline.icon-only { padding: 8px 11px; }
+
+/* Chip button */
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--t);
+  white-space: nowrap;
+}
+.chip-btn.icon-only {
+  padding: 6px 8px;
+  gap: 0;
+  min-width: 30px;
+  justify-content: center;
+}
+.chip-btn:hover { border-color: var(--border-strong); color: var(--text); }
+.chip-btn.active {
+  background: var(--primary-faint);
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+.chip-btn.active i { color: var(--primary); }
+
+.icon-sm-btn {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint);
+  font-size: 12px;
+  transition: all var(--t);
+}
+.icon-sm-btn:hover { background: var(--surface-2); color: var(--text); }
+
+.icon-btn {
+  width: 34px; height: 34px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: background var(--t), color var(--t);
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn.active { background: var(--primary-faint); color: var(--primary-text); }
+
+/* Nút copy chính */
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all var(--t);
+}
+.btn-copy:hover { background: var(--primary-hover); }
+.btn-copy.copied { background: var(--norm); }

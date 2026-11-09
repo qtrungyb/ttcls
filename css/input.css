@@ -1,0 +1,86 @@
+/* =========================================================
+   INPUT CARD
+   ========================================================= */
+.card-input { position: relative; }
+.input-wrap {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#dataInput {
+  width: 100%;
+  height: 140px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--f-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--t), box-shadow var(--t);
+  scrollbar-width: thin;
+}
+#dataInput::placeholder { color: var(--text-faint); font-family: var(--f-sans); font-size: 12.5px; }
+#dataInput:focus {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+#dataInput::-webkit-scrollbar { width: 7px; }
+#dataInput::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+.input-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.input-actions .btn-primary { flex: 1; min-width: 130px; }
+
+/* Recent chips */
+.recent-block {
+  padding: 0 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.recent-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.recent-label i { font-size: 9px; }
+.recent-chips {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.recent-chips::-webkit-scrollbar { display: none; }
+.recent-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  transition: all var(--t);
+}
+.recent-chip:hover { border-color: var(--primary); color: var(--primary-text); background: var(--primary-faint); }
+.recent-chip .time { color: var(--text-faint); font-family: var(--f-mono); font-size: 10px; }

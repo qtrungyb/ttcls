@@ -1,0 +1,156 @@
+/* =========================================================
+   TRANSFER FOOTER
+   ========================================================= */
+.transfer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.transfer-footer i.fa-location-arrow { color: var(--primary); }
+.transfer-footer strong { color: var(--text); font-weight: 600; }
+.transfer-footer a {
+  color: var(--primary-text);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color var(--t);
+}
+.transfer-footer a:hover { color: var(--primary-hover); }
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+.toast-message {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text);
+  color: var(--surface);
+  padding: 10px 20px;
+  border-radius: var(--r-full);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 5000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--sh-lg);
+  opacity: 0;
+  animation: toastIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards;
+}
+@keyframes toastIn {
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.toast-message.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.toast-message i { color: var(--norm); }
+
+/* =========================================================
+   SCROLL TOP
+   ========================================================= */
+.scroll-top-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px) scale(0.9);
+  transition: all 0.25s;
+}
+.scroll-top-btn.visible { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.scroll-top-btn:hover { background: var(--primary-hover); transform: translateY(-2px) scale(1.05); }
+
+/* =========================================================
+   SR-ONLY (nếu chưa có trong reset.css)
+   ========================================================= */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =========================================================
+   DENSITY: COMPACT (base — không thuộc drawer/output)
+   ========================================================= */
+body.density-compact .card-head { padding: 8px 12px; }
+body.density-compact .input-wrap { padding: 8px 12px; gap: 8px; }
+body.density-compact #dataInput {
+  height: 110px;
+  font-size: 11.5px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+body.density-compact .quick-cards { padding: 8px 10px 10px; gap: 5px; }
+body.density-compact .quick-card { padding: 6px 8px; }
+body.density-compact .quick-card-text { font-size: 11.5px; }
+body.density-compact .app-shell { padding: 0 14px 48px; }
+body.density-compact .workspace { gap: 12px; margin-top: 12px; }
+body.density-compact .card-quick { margin-top: 12px; }
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 1023px) {
+  .workspace { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .app-shell { padding: 0 12px 80px; }
+  .app-bar { height: 52px; }
+  .brand-title { font-size: 14px; }
+  .card-head { padding: 11px 12px; }
+  .input-wrap { padding: 10px 12px; }
+  .summary-body { padding: 12px; font-size: 12.5px; min-height: 140px; }
+  .card-footer { padding: 7px 10px; }
+  .stat-chip { padding: 4px 8px; font-size: 10.5px; }
+  .btn-view-detail { padding: 5px 10px; font-size: 11px; }
+  .btn-copy { padding: 5px 10px; font-size: 11.5px; }
+  #dataInput { height: 130px; font-size: 12px; }
+  .input-actions .btn { padding: 8px 12px; font-size: 12.5px; }
+  .drawer { width: 100vw; }
+  .detail-row { padding: 8px 14px; }
+  .quick-search input { width: 100px; }
+}
+
+@media (max-width: 480px) {
+  .app-actions .icon-btn { width: 32px; height: 32px; font-size: 14px; }
+  .quick-search { padding: 5px 10px; }
+  .quick-search input { width: 80px; font-size: 12px; }
+  .modal-box { max-height: 92vh; }
+  .appearance-item { padding: 12px; }
+  .segmented { width: 100%; }
+  .seg-btn { flex: 1; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

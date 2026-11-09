@@ -1,0 +1,145 @@
+/* =========================================================
+   OUTPUT CARD
+   ========================================================= */
+.card-output { position: relative; }
+.card-output.animate-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--primary);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  animation: pulseFade 0.8s ease-out;
+}
+@keyframes pulseFade {
+  from { opacity: 0.7; }
+  to { opacity: 0; }
+}
+
+.summary-body {
+  padding: 14px 16px;
+  min-height: 150px;
+  max-height: 44vh;
+  overflow-y: auto;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text);
+  scrollbar-width: thin;
+  word-break: break-word;
+}
+.summary-body::-webkit-scrollbar { width: 7px; }
+.summary-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+.summary-body .abnormal-value {
+  color: var(--abn-text);
+  background: var(--abn-faint);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   ABBR TOOLTIP
+   ========================================================= */
+.abbr-tip {
+  border-bottom: 1px dashed currentColor;
+  cursor: help;
+  text-decoration: none;
+}
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-faint);
+  font-family: var(--f-sans);
+}
+.empty-state i {
+  font-size: 32px;
+  opacity: 0.3;
+  margin-bottom: 8px;
+  color: var(--primary);
+}
+.empty-state p { font-size: 12.5px; }
+.empty-state.error i { color: var(--abn); }
+.empty-state.error p { color: var(--abn-text); }
+
+/* =========================================================
+   STATS FOOTER
+   ========================================================= */
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  flex-wrap: wrap;
+}
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--r-full);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-faint);
+  font-weight: 500;
+  cursor: default;
+}
+.stat-chip i { font-size: 10px; }
+.stat-chip .stat-value {
+  font-family: var(--f-mono);
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+.stat-chip.abn {
+  background: var(--abn-faint);
+  border-color: color-mix(in srgb, var(--abn) 40%, transparent);
+}
+.stat-chip.abn i { color: var(--abn); }
+.stat-chip.abn .stat-value { color: var(--abn-text); }
+
+.btn-view-detail {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: white;
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: background var(--t);
+}
+.btn-view-detail:hover { background: var(--primary-hover); }
+
+/* =========================================================
+   DENSITY: COMPACT (summary)
+   ========================================================= */
+body.density-compact .summary-body {
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.65;
+  min-height: 120px;
+  max-height: 42vh;
+}
+body.density-compact .card-footer { padding: 6px 10px; gap: 4px; }
+body.density-compact .stat-chip { padding: 3px 8px; font-size: 10.5px; }
+body.density-compact .stat-chip .stat-value { font-size: 11.5px; }
+body.density-compact .btn-view-detail { padding: 4px 9px; font-size: 11px; }
