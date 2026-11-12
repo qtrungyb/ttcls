@@ -204,7 +204,6 @@ window.CLS = window.CLS || {};
     }));
 
     /* Drawer */
-    el.toggleTableBtn.addEventListener('click', openDrawer);
     el.openDrawerBtn.addEventListener('click', openDrawer);
     el.drawerClose.addEventListener('click', closeDrawer);
     el.drawerApply.addEventListener('click', closeDrawer);

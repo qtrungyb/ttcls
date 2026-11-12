@@ -59,7 +59,6 @@ window.CLS = window.CLS || {};
     abnormalIndicatorsSpan: $('#abnormalIndicators'),
     selectedCountBadge: $('#selectedCountBadge'),
 
-    toggleTableBtn: $('#toggleTableBtn'),
     openDrawerBtn: $('#openDrawerBtn'),
     tableContainer: $('#tableContainer'),
     drawerBackdrop: $('#drawerBackdrop'),
