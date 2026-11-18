@@ -1,4 +1,6 @@
-/* Firebase listeners & CRUD — compat API */
+/* =========================================================
+   DATA — Firebase listeners, CRUD, backup/restore
+   ========================================================= */
 window.CLS = window.CLS || {};
 
 (function() {
@@ -15,7 +17,7 @@ window.CLS = window.CLS || {};
         }
       }
       localStorage.setItem(SEEDED_KEY, '1');
-      console.log('✅ [CLS] Seeded defaults');
+      console.log('✅ [data] Seeded defaults');
     } catch (e) {
       console.warn('Seed check failed:', e);
     }
@@ -71,7 +73,7 @@ window.CLS = window.CLS || {};
       console.error('❌ quickCopyRef on() failed:', err);
     });
 
-    console.log('✅ [CLS] Firebase listeners registered');
+    console.log('✅ [data] Firebase listeners registered');
   };
 
   window.CLS.resetAbbrToDefaults = async function() {
@@ -153,3 +155,5 @@ window.CLS = window.CLS || {};
     return true;
   };
 })();
+
+console.log('✅ [data] ready');
