@@ -1444,3 +1444,30 @@ body.pip-mode .card-quick {
 body.pip-mode .transfer-footer {
   display: none;
 }
+/* ---------------------------------------------------------
+   14) AUTO-SCAN TOGGLE BUTTON
+   --------------------------------------------------------- */
+.auto-scan-btn {
+  padding: 5px 10px;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.auto-scan-btn .scan-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+  transition: background var(--t);
+}
+.auto-scan-btn.active {
+  background: var(--norm-faint);
+  border-color: var(--norm);
+  color: var(--norm-text);
+}
+.auto-scan-btn.active .scan-dot {
+  background: var(--norm);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--norm) 60%, transparent);
+  animation: pipPulse 1.8s infinite;
+}
