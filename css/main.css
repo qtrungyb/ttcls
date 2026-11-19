@@ -1293,3 +1293,154 @@ body.density-compact .panel-head { padding: 7px 14px; font-size: 10px; }
     scroll-behavior: auto !important;
   }
 }
+/* ---------------------------------------------------------
+   13) DOCUMENT PICTURE-IN-PICTURE (PiP)
+   --------------------------------------------------------- */
+.pip-placeholder {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg);
+}
+
+.pip-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-md);
+  padding: 28px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pip-icon-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--primary-faint);
+  border: 1px solid var(--primary-soft);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.pip-live-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--norm);
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--norm) 60%, transparent);
+  animation: pipPulse 2s infinite;
+}
+
+@keyframes pipPulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--norm) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.pip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  background: var(--primary-faint);
+  color: var(--primary-text);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.pip-title {
+  font-family: var(--f-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+
+.pip-desc {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+.pip-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pip-actions .btn {
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.pip-hint {
+  margin-top: 16px;
+  padding-top: 12px;
+  width: 100%;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* Tinh chỉnh giao diện BÊN TRONG cửa sổ PiP cho gọn */
+body.pip-mode .app-shell {
+  padding: 0 10px 24px;
+}
+body.pip-mode .app-bar {
+  height: 44px;
+}
+body.pip-mode .workspace {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+body.pip-mode .card-head {
+  padding: 8px 11px;
+}
+body.pip-mode .input-wrap {
+  padding: 9px 11px;
+  gap: 8px;
+}
+body.pip-mode #dataInput {
+  height: 92px;
+  font-size: 11.5px;
+}
+body.pip-mode .summary-body {
+  padding: 10px 12px;
+  min-height: 100px;
+  max-height: 35vh;
+  font-size: 12.5px;
+}
+body.pip-mode .card-quick {
+  margin-top: 10px;
+}
+body.pip-mode .transfer-footer {
+  display: none;
+}
