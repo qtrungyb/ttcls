@@ -13,7 +13,13 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-
+<div id="pipPlaceholder" class="pip-placeholder hidden">
+    <i class="fas fa-window-restore"></i>
+    <p><strong>Tóm tắt CLS</strong> đang mở ở cửa sổ nổi (PiP)</p>
+    <button class="btn btn-primary" id="pipRestoreBtn">
+      <i class="fas fa-compress-alt"></i> Đưa về cửa sổ này
+    </button>
+  </div>
   <div class="app-shell">
     <!-- ======================= APP BAR ======================= -->
     <header class="app-bar" id="appBar">
@@ -24,6 +30,9 @@
         </div>
       </div>
       <nav class="app-actions">
+        <button class="icon-btn" id="pipToggleBtn" title="Cửa sổ nổi (PiP)">
+          <i class="fas fa-up-right-from-square"></i>
+        </button>
         <button class="icon-btn" id="settingsBtn" title="Cài đặt">
           <i class="fas fa-cog"></i>
         </button>
@@ -50,8 +59,9 @@
           <textarea id="dataInput" placeholder="Dán dữ liệu xét nghiệm…"></textarea>
           <div class="input-actions">
             <button class="btn btn-primary" id="summarizeBtn"><i class="fas fa-bolt"></i> Tóm tắt <kbd>⌘↵</kbd></button>
-            <button class="btn btn-ghost icon-only" id="clearBtn" title="Làm mới"><i class="fas fa-trash-alt"></i></button>
-          </div>
+            <button class="btn btn-outline" id="autoExtractBtn" title="Tự động lấy dữ liệu từ trang bệnh án"><i class="fas fa-magic"></i> Quét dữ liệu</button>
+			<button class="btn btn-ghost icon-only" id="clearBtn" title="Làm mới"><i class="fas fa-trash-alt"></i></button>
+			</div>
         </div>
       </section>
 
@@ -274,8 +284,8 @@
   <div id="scrollTopBtn" class="scroll-top-btn" title="Lên đầu trang"><i class="fas fa-arrow-up"></i></div>
 
   <!-- ======================= SCRIPTS ======================= -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+  <script src="js/lib/firebase-app-compat.js"></script>
+  <script src="js/lib/firebase-database-compat.js"></script>
   <script src="js/core.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/data.js"></script>
