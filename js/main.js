@@ -357,92 +357,64 @@ window.CLS = window.CLS || {};
       });
     });
 
-    /* Nút Quét dữ liệu tự động từ HIS (hỗ trợ cả Side Panel lẫn PiP) */
-    function isScannableUrl(url) {
-      return typeof url === 'string' && /^https?:\/\//i.test(url);
-    }
-
-    async function findTargetTabForScan() {
-      // 1. Ưu tiên tab HIS đang mở ở cửa sổ Chrome chính (bỏ qua cửa sổ PiP)
-      if (chrome.windows && chrome.windows.getLastFocused) {
-        try {
-          const win = await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] });
-          const active = win?.tabs?.find(t => t.active && isScannableUrl(t.url));
-          if (active) return active;
-        } catch {}
-      }
-
-      // 2. Dò tất cả cửa sổ đang mở (hỗ trợ đa màn hình hoặc HIS mở cửa sổ popup)
-      if (chrome.windows && chrome.windows.getAll) {
-        try {
-          const allWins = await chrome.windows.getAll({ populate: true, windowTypes: ['normal', 'popup'] });
-          const activeWebTabs = [];
-          const allWebTabs = [];
-
-          for (const w of allWins) {
-            for (const t of (w.tabs || [])) {
-              if (!t.id || !isScannableUrl(t.url)) continue;
-              allWebTabs.push(t);
-              if (t.active) activeWebTabs.push(t);
+    /* Nút Quét dữ liệu tự động từ HIS (chạy cả Side Panel lẫn PiP trên GitHub) */
+    function requestScanHIS() {
+      // Trường hợp 1: Đang chạy trực tiếp bên trong Extension (Side Panel)
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.sendMessage) {
+        return new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: 'CLS_SCAN_HIS' }, (res) => {
+            if (chrome.runtime.lastError) {
+              return resolve({ ok: false, error: chrome.runtime.lastError.message });
             }
-          }
-
-          if (activeWebTabs.length) {
-            activeWebTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-            return activeWebTabs[0];
-          }
-          if (allWebTabs.length) {
-            allWebTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-            return allWebTabs[0];
-          }
-        } catch {}
+            resolve(res || { ok: false, error: 'Không nhận được phản hồi từ Extension.' });
+          });
+        });
       }
 
-      // 3. Dự phòng
-      const [fallback] = await chrome.tabs.query({ active: true, currentWindow: true });
-      return (fallback && isScannableUrl(fallback.url)) ? fallback : null;
+      // Trường hợp 2: Đang chạy trên web GitHub (tab thường hoặc cửa sổ nổi PiP)
+      return new Promise((resolve) => {
+        if (document.documentElement.dataset.clsExtReady !== '1') {
+          return resolve({
+            ok: false,
+            error: 'Chưa kết nối Extension. Hãy bật Extension "Tóm tắt CLS" và F5 lại trang web!'
+          });
+        }
+
+        const requestId = 'scan_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        const timer = setTimeout(() => {
+          window.removeEventListener('message', onReply);
+          resolve({ ok: false, error: 'Hết thời gian chờ Extension — hãy F5 lại trang Tóm tắt CLS.' });
+        }, 4000);
+
+        function onReply(event) {
+          if (event.source !== window) return;
+          const d = event.data;
+          if (!d || d.type !== 'CLS_SCAN_RESPONSE' || d.requestId !== requestId) return;
+          clearTimeout(timer);
+          window.removeEventListener('message', onReply);
+          resolve(d);
+        }
+
+        window.addEventListener('message', onReply);
+        window.postMessage({ type: 'CLS_SCAN_REQUEST', requestId }, window.location.origin);
+      });
     }
 
     const autoExtractBtn = document.getElementById('autoExtractBtn');
     if (autoExtractBtn) {
       autoExtractBtn.addEventListener('click', async () => {
-        if (typeof chrome === 'undefined' || !chrome.tabs || !chrome.scripting) {
-          return showToast('Tính năng này chỉ hoạt động trên Chrome Extension.', 3000);
-        }
-
         const origHtml = autoExtractBtn.innerHTML;
         autoExtractBtn.disabled = true;
         autoExtractBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang quét…';
 
         try {
-          const tab = await findTargetTabForScan();
-          if (!tab || !tab.id) {
-            return showToast('Không tìm thấy tab trang web HIS đang mở.', 3500);
-          }
-
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id, allFrames: true },
-            func: extractDataFromHIS,
-          });
-
-          const validResults = (results || []).map(r => r.result).filter(Boolean);
-
-          const selectionHit = validResults.find(r => r.type === 'selection' && r.text.trim());
-          const clsTableHit = validResults
-            .filter(r => r.type === 'cls_table' && r.text.trim())
-            .sort((a, b) => (b.score - a.score) || (b.rowCount - a.rowCount))[0];
-          const fallbackTableHit = validResults
-            .filter(r => r.type === 'table' && r.text.trim())
-            .sort((a, b) => b.text.length - a.text.length)[0];
-
-          const hit = selectionHit || clsTableHit || fallbackTableHit;
-
-          if (hit && hit.text.trim()) {
-            el.dataTextarea.value = hit.text;
+          const res = await requestScanHIS();
+          if (res.ok && res.text && res.text.trim()) {
+            el.dataTextarea.value = res.text;
             el.clearTextBtn.classList.remove('hidden');
             window.CLS.performSummarize();
           } else {
-            showToast('Không tìm thấy bảng kết quả xét nghiệm trên trang!', 4000);
+            showToast(res.error || 'Không tìm thấy bảng kết quả xét nghiệm!', 4000);
           }
         } catch (err) {
           console.error('AUTO EXTRACT ERROR:', err);
