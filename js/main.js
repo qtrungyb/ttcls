@@ -358,11 +358,27 @@ window.CLS = window.CLS || {};
     });
 
     /* Nút Quét dữ liệu tự động từ HIS (chạy cả Side Panel lẫn PiP trên GitHub) */
-    function requestScanHIS() {
-      // Trường hợp 1: Đang chạy trực tiếp bên trong Extension (Side Panel)
+    /* Kênh copy dự phòng qua Extension khi PiP không có focus */
+    window.CLS.copyViaExtension = function(text) {
+      if (!text) return;
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'CLS_COPY_TEXT', text }, () => {
+          void chrome.runtime.lastError;
+        });
+        return;
+      }
+      if (document.documentElement.dataset.clsExtReady === '1') {
+        document.dispatchEvent(
+          new CustomEvent('cls-copy-request', { detail: JSON.stringify({ text }) })
+        );
+      }
+    };
+
+    /* Quét dữ liệu tự động từ HIS (chạy cả Side Panel lẫn PiP trên GitHub) */
+    function requestScanHIS(mode = 'manual') {
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id && chrome.runtime.sendMessage) {
         return new Promise((resolve) => {
-          chrome.runtime.sendMessage({ type: 'CLS_SCAN_HIS' }, (res) => {
+          chrome.runtime.sendMessage({ type: 'CLS_SCAN_HIS', mode }, (res) => {
             if (chrome.runtime.lastError) {
               return resolve({ ok: false, error: chrome.runtime.lastError.message });
             }
@@ -371,7 +387,6 @@ window.CLS = window.CLS || {};
         });
       }
 
-      // Trường hợp 2: Đang chạy trên web GitHub (tab thường hoặc cửa sổ nổi PiP)
       return new Promise((resolve) => {
         if (document.documentElement.dataset.clsExtReady !== '1') {
           return resolve({
@@ -397,7 +412,7 @@ window.CLS = window.CLS || {};
               ? 'Background Extension không phản hồi — kiểm tra mục Lỗi ở chrome://extensions.'
               : 'bridge.js chưa nhận lệnh — hãy Reload Extension và Ctrl+F5 trang Tóm tắt CLS.'
           });
-        }, 7000);
+        }, mode === 'auto' ? 4000 : 7000);
 
         function parseDetail(ev) {
           try {
@@ -422,7 +437,7 @@ window.CLS = window.CLS || {};
         document.addEventListener('cls-scan-ack', onAck);
         document.addEventListener('cls-scan-response', onReply);
         document.dispatchEvent(
-          new CustomEvent('cls-scan-request', { detail: JSON.stringify({ requestId }) })
+          new CustomEvent('cls-scan-request', { detail: JSON.stringify({ requestId, mode }) })
         );
       });
     }
@@ -435,8 +450,9 @@ window.CLS = window.CLS || {};
         autoExtractBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang quét…';
 
         try {
-          const res = await requestScanHIS();
+          const res = await requestScanHIS('manual');
           if (res.ok && res.text && res.text.trim()) {
+            state.lastAutoScannedText = res.text.trim();
             el.dataTextarea.value = res.text;
             el.clearTextBtn.classList.remove('hidden');
             window.CLS.performSummarize();
@@ -449,6 +465,84 @@ window.CLS = window.CLS || {};
         } finally {
           autoExtractBtn.disabled = false;
           autoExtractBtn.innerHTML = origHtml;
+        }
+      });
+    }
+
+    /* ---------- Tự động quét khi chuyển phiếu xét nghiệm trên HIS ---------- */
+    let isAutoScanning = false;
+    let autoScanTimerWin = null;
+
+    function stopAutoScanLoop() {
+      if (state.autoScanTimer != null) {
+        try {
+          (autoScanTimerWin || window).clearInterval(state.autoScanTimer);
+        } catch {}
+        state.autoScanTimer = null;
+        autoScanTimerWin = null;
+      }
+    }
+
+    async function runAutoScanTick() {
+      if (!state.autoScanEnabled || isAutoScanning) return;
+
+      // Không quét tốn tài nguyên khi cả PiP lẫn tab gốc đều đang ẩn
+      const hasOpenPiP = Boolean(state.pipWindow && !state.pipWindow.closed);
+      if (!hasOpenPiP && document.hidden) return;
+
+      isAutoScanning = true;
+      try {
+        const res = await requestScanHIS('auto');
+        if (!state.autoScanEnabled) return;
+
+        if (res.ok && !res.empty && res.text && res.text.trim()) {
+          const normalized = res.text.trim();
+          if (normalized !== state.lastAutoScannedText) {
+            state.lastAutoScannedText = normalized;
+            el.dataTextarea.value = normalized;
+            el.clearTextBtn.classList.remove('hidden');
+            window.CLS.performSummarize();
+          }
+        }
+      } catch {
+        // Bỏ qua im lặng ở chế độ nền
+      } finally {
+        isAutoScanning = false;
+      }
+    }
+
+    function startAutoScanLoop(immediate = false) {
+      stopAutoScanLoop();
+      if (!state.autoScanEnabled) return;
+
+      // Chạy bộ đếm trên cửa sổ đang hiển thị (PiP) để tránh Chrome bóp tốc độ tab nền
+      const hostWin = getActiveWin();
+      autoScanTimerWin = hostWin;
+      state.autoScanTimer = hostWin.setInterval(runAutoScanTick, 1200);
+      if (immediate) runAutoScanTick();
+    }
+
+    if (el.autoScanToggleBtn) {
+      el.autoScanToggleBtn.addEventListener('click', () => {
+        const extAvailable =
+          (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) ||
+          document.documentElement.dataset.clsExtReady === '1';
+
+        if (!state.autoScanEnabled && !extAvailable) {
+          return showToast('Chưa kết nối Extension — hãy bật Extension và F5 lại trang!', 3500);
+        }
+
+        state.autoScanEnabled = !state.autoScanEnabled;
+        localStorage.setItem(STORAGE.AUTO_SCAN, state.autoScanEnabled);
+        updateUI();
+
+        if (state.autoScanEnabled) {
+          state.lastAutoScannedText = '';
+          startAutoScanLoop(true);
+          showToast('Đã bật tự động quét HIS');
+        } else {
+          stopAutoScanLoop();
+          showToast('Đã tắt tự động quét HIS');
         }
       });
     }
@@ -760,6 +854,7 @@ window.CLS = window.CLS || {};
       el.appBar.classList.toggle('scrolled', window.scrollY > 8);
       window.CLS.applyTheme();
       window.CLS.applyDensity();
+	  if (state.autoScanEnabled) startAutoScanLoop(false);
     }
 
     async function openPiP() {
@@ -835,6 +930,7 @@ window.CLS = window.CLS || {};
           chrome.tabs.create({ url });
           return;
         }
+		if (state.autoScanEnabled) startAutoScanLoop(true);
         showToast(`Không mở được PiP: ${err.message}`, 4000);
       }
     }
@@ -880,6 +976,7 @@ window.CLS = window.CLS || {};
         await openPiP();
       });
     }
+	if (state.autoScanEnabled) startAutoScanLoop(false);
   };
 })();
 

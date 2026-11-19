@@ -19,7 +19,12 @@ window.CLS = window.CLS || {};
     el.toggleAbbrBtn.classList.toggle('active', state.showAbbr);
 
     el.autoToggleBtn.classList.toggle('active', state.autoSummarizeEnabled);
-
+	if (el.autoScanToggleBtn) {
+      el.autoScanToggleBtn.classList.toggle('active', state.autoScanEnabled);
+      el.autoScanToggleBtn.title = state.autoScanEnabled
+        ? 'Đang bật Tự động quét HIS (nhấn để tắt)'
+        : 'Tắt Tự động quét HIS (nhấn để bật)';
+    }
     el.formatLabel.textContent = FORMAT_LABELS[state.copyFormat] || ',';
     el.formatItems.forEach(i => {
       const active = i.dataset.value === state.copyFormat;

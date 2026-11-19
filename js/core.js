@@ -6,6 +6,7 @@ window.CLS = window.CLS || {};
 
 /* ---------- Constants ---------- */
 window.CLS.STORAGE = {
+  AUTO_SCAN: 'autoScanHIS',
   SHOW_UNIT: 'showUnit',
   SHOW_ABBR: 'showAbbr',
   COPY_FORMAT: 'copyFormat',
@@ -101,6 +102,9 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
     || (oldTheme === 'dark' || oldTheme === 'light' ? oldTheme : 'auto');
 
   window.CLS.state = {
+	autoScanEnabled: localStorage.getItem(STORAGE.AUTO_SCAN) === 'true',
+    lastAutoScannedText: '',
+    autoScanTimer: null,
     currentAbbrMap: {},
     firebaseAbbrList: [],
     showUnit: localStorage.getItem(STORAGE.SHOW_UNIT) === 'true',
@@ -123,7 +127,8 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
   };
 
   window.CLS.el = {
-	 appShell: $('.app-shell'),
+	autoScanToggleBtn: $('#autoScanToggleBtn'),
+	appShell: $('.app-shell'),
     pipToggleBtn: $('#pipToggleBtn'),
     pipPlaceholder: $('#pipPlaceholder'),
     pipRestoreBtn: $('#pipRestoreBtn'),
@@ -277,10 +282,25 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 
   window.CLS.copyToClipboard = function(text) {
     const win = window.CLS.getActiveWin();
-    if (win.navigator.clipboard && win.isSecureContext !== false) {
-      return win.navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    const doc = win.document;
+
+    // Khi tự động quét lúc đang bấm bên tab HIS, cửa sổ PiP không focus -> copy qua Extension
+    if (!doc.hasFocus() && window.CLS.copyViaExtension) {
+      window.CLS.copyViaExtension(text);
+      return Promise.resolve();
     }
-    return Promise.resolve(fallbackCopy(text));
+
+    if (win.navigator.clipboard && win.isSecureContext !== false) {
+      return win.navigator.clipboard.writeText(text).catch(() => {
+        if (!fallbackCopy(text) && window.CLS.copyViaExtension) {
+          window.CLS.copyViaExtension(text);
+        }
+      });
+    }
+    if (!fallbackCopy(text) && window.CLS.copyViaExtension) {
+      window.CLS.copyViaExtension(text);
+    }
+    return Promise.resolve();
   };
 
   function fallbackCopy(text) {
