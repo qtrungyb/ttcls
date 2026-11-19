@@ -38,9 +38,12 @@ window.CLS = window.CLS || {};
   };
 
   window.CLS.applyTheme = function() {
-    const { state, el } = window.CLS;
+    const { state, el, getActiveDoc } = window.CLS;
     const isDark = window.CLS.getEffectiveTheme() === 'dark';
     document.body.classList.toggle('dark-mode', isDark);
+    if (state.pipWindow && !state.pipWindow.closed) {
+      state.pipWindow.document.body.classList.toggle('dark-mode', isDark);
+    }
 
     const icon = el.themeToggle.querySelector('i');
     if (state.themeMode === 'auto') {
@@ -54,7 +57,7 @@ window.CLS = window.CLS || {};
       el.themeToggle.title = 'Giao diện: Sáng';
     }
 
-    document.querySelectorAll('#themeSegmented .seg-btn').forEach(b => {
+    getActiveDoc().querySelectorAll('#themeSegmented .seg-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.theme === state.themeMode);
     });
   };
@@ -78,9 +81,13 @@ window.CLS = window.CLS || {};
   };
 
   window.CLS.applyDensity = function() {
-    const { state } = window.CLS;
-    document.body.classList.toggle('density-compact', state.density === 'compact');
-    document.querySelectorAll('#densitySegmented .seg-btn').forEach(b => {
+    const { state, getActiveDoc } = window.CLS;
+    const isCompact = state.density === 'compact';
+    document.body.classList.toggle('density-compact', isCompact);
+    if (state.pipWindow && !state.pipWindow.closed) {
+      state.pipWindow.document.body.classList.toggle('density-compact', isCompact);
+    }
+    getActiveDoc().querySelectorAll('#densitySegmented .seg-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.density === state.density);
     });
   };
@@ -225,7 +232,7 @@ window.CLS = window.CLS || {};
 
     el.abbrCountBadge.textContent = state.firebaseAbbrList.length;
 
-    document.querySelectorAll('.edit-abbr-btn').forEach(btn => btn.addEventListener('click', e => {
+    el.abbrListContainer.querySelectorAll('.edit-abbr-btn').forEach(btn => btn.addEventListener('click', e => {
       const item = state.firebaseAbbrList.find(x => x.id === e.currentTarget.dataset.id);
       if (!item) return;
       el.editAbbrId.value = item.id;
@@ -236,7 +243,7 @@ window.CLS = window.CLS || {};
       switchTab('tabAdd');
     }));
 
-    document.querySelectorAll('.delete-abbr-btn').forEach(btn => btn.addEventListener('click', e => {
+    el.abbrListContainer.querySelectorAll('.delete-abbr-btn').forEach(btn => btn.addEventListener('click', e => {
       if (!confirm('Xóa viết tắt này trên toàn hệ thống?')) return;
       db.ref('abbreviations/' + e.currentTarget.dataset.id).remove()
         .then(() => showToast('Đã xóa'))
@@ -303,24 +310,24 @@ window.CLS = window.CLS || {};
 /* ---------- Drawer ---------- */
 (function() {
   window.CLS.openDrawer = function() {
-    const { state, el, renderTable } = window.CLS;
+    const { state, el, renderTable, getActiveDoc } = window.CLS;
     if (state.isTableDirty) { renderTable(); state.isTableDirty = false; }
     el.tableContainer.classList.add('open');
     el.drawerBackdrop.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    getActiveDoc().body.style.overflow = 'hidden';
   };
 
   window.CLS.closeDrawer = function() {
-    const { el } = window.CLS;
+    const { el, getActiveDoc } = window.CLS;
     el.tableContainer.classList.remove('open');
     el.drawerBackdrop.classList.remove('open');
-    document.body.style.overflow = '';
+    getActiveDoc().body.style.overflow = '';
   };
 
   window.CLS.syncSelection = function(indices) {
-    const { state, updateStats, updateSummary } = window.CLS;
+    const { state, el, updateStats, updateSummary } = window.CLS;
     state.selectedIndices = indices;
-    document.querySelectorAll('.row-select').forEach(cb => {
+    el.tableBody.querySelectorAll('.row-select').forEach(cb => {
       const idx = parseInt(cb.dataset.index, 10);
       const checked = indices.includes(idx);
       cb.checked = checked;

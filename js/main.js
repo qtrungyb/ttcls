@@ -1,10 +1,18 @@
 /* =========================================================
-   MAIN — event bindings + bootstrap
+   MAIN — event bindings + auto-extract HIS + PiP + bootstrap
    ========================================================= */
 window.CLS = window.CLS || {};
 
 /* ---------- Events ---------- */
 (function() {
+  function getActiveWin() {
+    return window.CLS.getActiveWin ? window.CLS.getActiveWin() : window;
+  }
+
+  function getActiveDoc() {
+    return window.CLS.getActiveDoc ? window.CLS.getActiveDoc() : getActiveWin().document;
+  }
+
   function openQuickModal(item = null) {
     const { state, el } = window.CLS;
     state.editingQuickId = item ? item.id : null;
@@ -33,6 +41,36 @@ window.CLS = window.CLS || {};
     }
 
     el.itemModal.classList.remove('hidden');
+  }
+
+  // Hàm này được bơm (inject) trực tiếp vào trang HIS — không dùng biến ngoài phạm vi hàm
+  function extractDataFromHIS() {
+    const selection = window.getSelection()?.toString() || '';
+    if (selection.trim().length > 0) {
+      return { type: 'selection', text: selection };
+    }
+
+    const tables = document.querySelectorAll('table');
+    if (tables.length > 0) {
+      let bestTable = tables[0];
+      for (const t of tables) {
+        if ((t.innerText || '').length > (bestTable.innerText || '').length) {
+          bestTable = t;
+        }
+      }
+
+      let resultText = '';
+      for (const row of bestTable.rows) {
+        const rowData = [];
+        for (const cell of row.cells) {
+          rowData.push((cell.innerText || '').replace(/\s+/g, ' ').trim());
+        }
+        resultText += rowData.join('\t') + '\n';
+      }
+      return { type: 'table', text: resultText };
+    }
+
+    return null;
   }
 
   window.CLS.performSummarize = function() {
@@ -102,11 +140,11 @@ window.CLS = window.CLS || {};
 
     /* Input */
     el.dataTextarea.addEventListener('focus', () => {
-      document.body.classList.add('focus-mode');
+      getActiveDoc().body.classList.add('focus-mode');
       el.clearTextBtn.classList.toggle('hidden', !el.dataTextarea.value.length);
     });
     el.dataTextarea.addEventListener('blur', () => {
-      document.body.classList.remove('focus-mode');
+      getActiveDoc().body.classList.remove('focus-mode');
     });
 
     const debouncedSummarize = debounce(() => {
@@ -146,6 +184,67 @@ window.CLS = window.CLS || {};
         }, 1800);
       });
     });
+
+    /* Nút Quét dữ liệu tự động từ HIS */
+    const autoExtractBtn = document.getElementById('autoExtractBtn');
+    if (autoExtractBtn) {
+      autoExtractBtn.addEventListener('click', async () => {
+        if (typeof chrome === 'undefined' || !chrome.tabs || !chrome.scripting) {
+          return showToast('Tính năng này chỉ hoạt động trên Chrome Extension.', 3000);
+        }
+
+        try {
+          // Tìm đúng tab đang mở ở cửa sổ trình duyệt chính (bỏ qua cửa sổ PiP)
+          let tab = null;
+          if (chrome.windows && chrome.windows.getLastFocused) {
+            try {
+              const normalWin = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+              const tabs = await chrome.tabs.query({ active: true, windowId: normalWin.id });
+              tab = tabs[0];
+            } catch {}
+          }
+          if (!tab) {
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            tab = activeTab;
+          }
+          if (!tab || !tab.id) return showToast('Không tìm thấy tab trang web.');
+
+          if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:'))) {
+            return showToast('Không thể quét trên trang hệ thống trình duyệt.', 3000);
+          }
+
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id, allFrames: true },
+            func: extractDataFromHIS,
+          });
+
+          const validResults = (results || []).map(r => r.result).filter(Boolean);
+
+          // Ưu tiên 1: Vùng text đang bôi đen (kể cả trong iframe)
+          const selectionHit = validResults.find(r => r.type === 'selection' && r.text.trim());
+          // Ưu tiên 2: Bảng nhiều dữ liệu nhất trong tất cả các frame
+          const bestTableHit = validResults
+            .filter(r => r.type === 'table' && r.text.trim())
+            .sort((a, b) => b.text.length - a.text.length)[0];
+
+          const extractedText = selectionHit?.text || bestTableHit?.text || '';
+
+          if (extractedText.trim()) {
+            el.dataTextarea.value = extractedText;
+            el.clearTextBtn.classList.remove('hidden');
+            window.CLS.performSummarize();
+            if (state.currentRows.length) {
+              showToast(selectionHit ? 'Đã quét vùng bôi đen!' : 'Đã quét bảng dữ liệu!');
+            }
+          } else {
+            showToast('Không tìm thấy dữ liệu. Hãy bôi đen bảng chỉ số trên web trước!', 4000);
+          }
+        } catch (err) {
+          console.error('AUTO EXTRACT ERROR:', err);
+          showToast(`Lỗi quét: ${err.message}`, 5000);
+        }
+      });
+    }
 
     /* Toggles */
     el.toggleUnitBtn.addEventListener('click', () => {
@@ -272,9 +371,10 @@ window.CLS = window.CLS || {};
       if (!card) return;
       e.preventDefault();
       state.contextMenuTargetId = card.dataset.id;
+      const win = getActiveWin();
       el.contextMenu.classList.remove('hidden');
-      el.contextMenu.style.left = Math.min(e.pageX, window.innerWidth - 180) + 'px';
-      el.contextMenu.style.top = Math.min(e.pageY, window.innerHeight - 100) + 'px';
+      el.contextMenu.style.left = Math.min(e.clientX, win.innerWidth - 180) + 'px';
+      el.contextMenu.style.top = Math.min(e.clientY, win.innerHeight - 100) + 'px';
     });
 
     /* Quick copy collapse */
@@ -399,11 +499,14 @@ window.CLS = window.CLS || {};
         scrolling = true;
       }
     }, { passive: true });
-    el.scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    el.scrollTopBtn.addEventListener('click', () => {
+      getActiveWin().scrollTo({ top: 0, behavior: 'smooth' });
+    });
 
-    /* Shortcuts */
-    document.addEventListener('keydown', (e) => {
+    /* Shortcuts (dùng chung cho cửa sổ chính và cửa sổ PiP) */
+    function handleGlobalKeydown(e) {
       const cmd = e.ctrlKey || e.metaKey;
+      const doc = getActiveDoc();
       if (cmd && e.key === 'Enter') {
         e.preventDefault();
         window.CLS.performSummarize();
@@ -411,7 +514,7 @@ window.CLS = window.CLS || {};
         e.preventDefault();
         el.copySummaryBtn.click();
       } else if (e.key === 'Escape') {
-        if (document.activeElement === el.dataTextarea && el.dataTextarea.value) {
+        if (doc.activeElement === el.dataTextarea && el.dataTextarea.value) {
           el.clearBtn.click();
           el.dataTextarea.focus();
           return;
@@ -422,7 +525,121 @@ window.CLS = window.CLS || {};
         el.contextMenu.classList.add('hidden');
         el.formatDropdownMenu.classList.add('hidden');
       }
-    });
+    }
+    document.addEventListener('keydown', handleGlobalKeydown);
+
+    /* ---------- Document Picture-in-Picture (PiP) ---------- */
+    const pipNodes = [
+      el.appShell,
+      el.tableContainer,
+      el.drawerBackdrop,
+      el.settingsModal,
+      el.itemModal,
+      el.contextMenu,
+      el.scrollTopBtn
+    ].filter(Boolean);
+
+    function restoreFromPiP() {
+      if (!state.pipWindow) return;
+      pipNodes.forEach(node => document.body.appendChild(node));
+      state.pipWindow = null;
+
+      if (el.pipPlaceholder) el.pipPlaceholder.classList.add('hidden');
+      if (el.pipToggleBtn) {
+        el.pipToggleBtn.classList.remove('active');
+        el.pipToggleBtn.title = 'Cửa sổ nổi (PiP)';
+        el.pipToggleBtn.innerHTML = '<i class="fas fa-up-right-from-square"></i>';
+      }
+      el.scrollTopBtn.classList.toggle('visible', window.scrollY > 300);
+      el.appBar.classList.toggle('scrolled', window.scrollY > 8);
+      window.CLS.applyTheme();
+      window.CLS.applyDensity();
+    }
+
+    async function openPiP() {
+      if (!('documentPictureInPicture' in window)) {
+        return showToast('Trình duyệt không hỗ trợ Document PiP (cần Chrome/Edge 116+)', 4000);
+      }
+      try {
+        const pipWin = await window.documentPictureInPicture.requestWindow({
+          width: 430,
+          height: 660
+        });
+
+        // Copy toàn bộ CSS sang cửa sổ PiP
+        document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+          const cloned = pipWin.document.createElement('link');
+          cloned.rel = 'stylesheet';
+          cloned.href = link.href;
+          pipWin.document.head.appendChild(cloned);
+        });
+        document.querySelectorAll('style').forEach(style => {
+          const cloned = pipWin.document.createElement('style');
+          cloned.textContent = style.textContent;
+          pipWin.document.head.appendChild(cloned);
+        });
+
+        pipWin.document.title = 'Tóm tắt CLS';
+        pipWin.document.body.className = document.body.className;
+        pipWin.document.body.classList.add('pip-mode');
+
+        // Di chuyển toàn bộ UI sang cửa sổ PiP
+        pipNodes.forEach(node => pipWin.document.body.appendChild(node));
+        state.pipWindow = pipWin;
+
+        if (el.pipPlaceholder) el.pipPlaceholder.classList.remove('hidden');
+        if (el.pipToggleBtn) {
+          el.pipToggleBtn.classList.add('active');
+          el.pipToggleBtn.title = 'Đóng cửa sổ nổi (PiP)';
+          el.pipToggleBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+        }
+
+        // Gắn lại các sự kiện mức document/window cho cửa sổ PiP
+        pipWin.document.addEventListener('click', (e) => {
+          el.formatDropdownMenu.classList.add('hidden');
+          if (!el.contextMenu.classList.contains('hidden') && !el.contextMenu.contains(e.target)) {
+            el.contextMenu.classList.add('hidden');
+          }
+        });
+        pipWin.document.addEventListener('keydown', handleGlobalKeydown);
+        pipWin.addEventListener('scroll', () => {
+          const y = pipWin.scrollY;
+          el.scrollTopBtn.classList.toggle('visible', y > 250);
+          el.appBar.classList.toggle('scrolled', y > 8);
+        }, { passive: true });
+
+        // Tự động trả giao diện về chỗ cũ khi đóng cửa sổ PiP
+        pipWin.addEventListener('pagehide', restoreFromPiP);
+
+        showToast('Đã mở cửa sổ nổi PiP');
+      } catch (err) {
+        console.error('PiP ERROR:', err);
+        showToast(`Không mở được PiP: ${err.message}`, 4000);
+      }
+    }
+
+    function togglePiP() {
+      if (state.pipWindow && !state.pipWindow.closed) {
+        state.pipWindow.close();
+      } else {
+        openPiP();
+      }
+    }
+
+    if (el.pipToggleBtn) el.pipToggleBtn.addEventListener('click', togglePiP);
+    if (el.pipRestoreBtn) {
+	const pipFocusBtn = document.getElementById('pipFocusBtn');
+    if (pipFocusBtn) {
+      pipFocusBtn.addEventListener('click', () => {
+        if (state.pipWindow && !state.pipWindow.closed) {
+          state.pipWindow.focus();
+        }
+      });
+    }
+      el.pipRestoreBtn.addEventListener('click', () => {
+        if (state.pipWindow && !state.pipWindow.closed) state.pipWindow.close();
+      });
+    }
   };
 })();
 

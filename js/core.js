@@ -118,10 +118,16 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
     activeQuickTab: 'all',
     themeMode: initialThemeMode,
     density: localStorage.getItem(DENSITY_KEY) || 'comfortable',
-    collapsedPanels: new Set()
+    collapsedPanels: new Set(),
+    pipWindow: null
   };
 
   window.CLS.el = {
+	 appShell: $('.app-shell'),
+    pipToggleBtn: $('#pipToggleBtn'),
+    pipPlaceholder: $('#pipPlaceholder'),
+    pipRestoreBtn: $('#pipRestoreBtn'),
+	
     dataTextarea: $('#dataInput'),
     summarizeBtn: $('#summarizeBtn'),
     clearBtn: $('#clearBtn'),
@@ -198,6 +204,7 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 
     scrollTopBtn: $('#scrollTopBtn'),
     appBar: $('#appBar')
+	
   };
 })();
 
@@ -246,12 +253,22 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
     return 'SinhHoa';
   };
 
+  window.CLS.getActiveWin = function() {
+    const w = window.CLS.state?.pipWindow;
+    return (w && !w.closed) ? w : window;
+  };
+
+  window.CLS.getActiveDoc = function() {
+    return window.CLS.getActiveWin().document;
+  };
+
   window.CLS.showToast = function(msg, duration = 2200) {
-    document.querySelector('.toast-message')?.remove();
-    const t = document.createElement('div');
+    const doc = window.CLS.getActiveDoc();
+    doc.querySelector('.toast-message')?.remove();
+    const t = doc.createElement('div');
     t.className = 'toast-message';
     t.innerHTML = `<i class="fas fa-check-circle"></i> ${msg}`;
-    document.body.appendChild(t);
+    doc.body.appendChild(t);
     setTimeout(() => {
       t.classList.add('fade-out');
       setTimeout(() => t.remove(), 350);
@@ -259,28 +276,29 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
   };
 
   window.CLS.copyToClipboard = function(text) {
-    if (navigator.clipboard && window.isSecureContext !== false) {
-      return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    const win = window.CLS.getActiveWin();
+    if (win.navigator.clipboard && win.isSecureContext !== false) {
+      return win.navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
     }
     return Promise.resolve(fallbackCopy(text));
   };
 
   function fallbackCopy(text) {
-    const ta = document.createElement('textarea');
+    const doc = window.CLS.getActiveDoc();
+    const ta = doc.createElement('textarea');
     ta.value = text;
     ta.style.position = 'fixed';
     ta.style.top = '-9999px';
     ta.setAttribute('readonly', '');
-    document.body.appendChild(ta);
+    doc.body.appendChild(ta);
     ta.select();
     ta.setSelectionRange(0, text.length);
     let ok = false;
-    try { ok = document.execCommand('copy'); } catch (e) {}
+    try { ok = doc.execCommand('copy'); } catch (e) {}
     ta.remove();
     if (!ok) console.warn('Clipboard copy failed');
   }
 })();
-
 /* ---------- Parser ---------- */
 (function() {
   const { RANGE_REGEX, LE_REGEX, L_REGEX, GE_REGEX, G_REGEX } = window.CLS;
