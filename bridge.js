@@ -1,19 +1,29 @@
 /* =========================================================
    BRIDGE — Cầu nối giữa qtrungyb.github.io (kể cả PiP)
-            và Chrome Extension
+            và Chrome Extension qua CustomEvent
    ========================================================= */
 (function() {
   document.documentElement.dataset.clsExtReady = '1';
 
-  window.addEventListener('message', (event) => {
-    if (event.source !== window) return;
-    const data = event.data;
-    if (!data || data.type !== 'CLS_SCAN_REQUEST') return;
+  document.addEventListener('cls-scan-request', (event) => {
+    let req = null;
+    try {
+      req = typeof event.detail === 'string' ? JSON.parse(event.detail) : event.detail;
+    } catch {}
+    if (!req || !req.requestId) return;
+
+    const requestId = req.requestId;
+
+    // Báo ngay cho trang web biết bridge.js đã nhận yêu cầu
+    document.dispatchEvent(
+      new CustomEvent('cls-scan-ack', { detail: JSON.stringify({ requestId }) })
+    );
 
     const reply = (payload) => {
-      window.postMessage(
-        { type: 'CLS_SCAN_RESPONSE', requestId: data.requestId, ...payload },
-        window.location.origin
+      document.dispatchEvent(
+        new CustomEvent('cls-scan-response', {
+          detail: JSON.stringify({ requestId, ...payload })
+        })
       );
     };
 
@@ -22,13 +32,13 @@
         if (chrome.runtime.lastError) {
           reply({
             ok: false,
-            error: 'Mất kết nối Extension — hãy F5 lại trang Tóm tắt CLS.'
+            error: 'Lỗi kết nối Extension: ' + chrome.runtime.lastError.message
           });
           return;
         }
-        reply(response || { ok: false, error: 'Không nhận được phản hồi từ Extension.' });
+        reply(response || { ok: false, error: 'Background không trả về dữ liệu.' });
       });
-    } catch {
+    } catch (err) {
       reply({
         ok: false,
         error: 'Extension vừa tải lại — hãy F5 trang Tóm tắt CLS rồi thử lại.'
