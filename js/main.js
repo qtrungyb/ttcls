@@ -45,29 +45,205 @@ window.CLS = window.CLS || {};
 
   // Hàm này được bơm (inject) trực tiếp vào trang HIS — không dùng biến ngoài phạm vi hàm
   function extractDataFromHIS() {
-    const selection = window.getSelection()?.toString() || '';
-    if (selection.trim().length > 0) {
-      return { type: 'selection', text: selection };
+    const clean = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+
+    function isVisible(node) {
+      if (!node || !node.getBoundingClientRect) return false;
+      const style = window.getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
+        return false;
+      }
+      const rect = node.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
     }
 
-    const tables = document.querySelectorAll('table');
-    if (tables.length > 0) {
-      let bestTable = tables[0];
-      for (const t of tables) {
+    function getCellText(cell) {
+      if (!cell) return '';
+      const field = cell.querySelector('input:not([type="checkbox"]):not([type="radio"]), textarea, select');
+      if (field) {
+        if (field.tagName === 'SELECT') {
+          return clean(field.options[field.selectedIndex]?.text || '');
+        }
+        return clean(field.value);
+      }
+      return clean(cell.innerText || cell.textContent);
+    }
+
+    function mapHeaderRow(row) {
+      const map = { stt: -1, name: -1, value: -1, ref: -1, unit: -1 };
+      const cells = Array.from(row.cells || []);
+
+      cells.forEach((cell, idx) => {
+        const h = getCellText(cell).toLowerCase();
+        if (!h) return;
+
+        if (map.stt === -1 && /^(stt|tt|#)$/.test(h)) {
+          map.stt = idx;
+        } else if (
+          map.name === -1 &&
+          !h.includes('loại xét nghiệm') &&
+          (h === 'chỉ số' || h.includes('chỉ số') || h.includes('tên xét nghiệm') ||
+           h.includes('tên xn') || h.includes('thông số'))
+        ) {
+          map.name = idx;
+        } else if (
+          map.value === -1 &&
+          !h.includes('tiền sử') && !h.includes('cũ') && !h.includes('trước') &&
+          (h === 'kết quả' || h.includes('kết quả') || h === 'kq' || h === 'giá trị' || h === 'result')
+        ) {
+          map.value = idx;
+        } else if (
+          map.ref === -1 &&
+          (h.includes('tham chiếu') || h.includes('trị số') || h.includes('bình thường') ||
+           h.includes('csbt') || h.includes('ngưỡng') || h.includes('reference'))
+        ) {
+          map.ref = idx;
+        } else if (
+          map.unit === -1 &&
+          (h.includes('đơn vị') || h === 'đv' || h === 'unit')
+        ) {
+          map.unit = idx;
+        }
+      });
+
+      let score = 0;
+      if (map.name !== -1) score += 3;
+      if (map.value !== -1) score += 3;
+      if (map.ref !== -1) score += 2;
+      if (map.unit !== -1) score += 1;
+      if (map.stt !== -1) score += 1;
+
+      return { map, score, colCount: cells.length };
+    }
+
+    function findPairedBodyTable(headerTable, expectedCols) {
+      let container = headerTable.parentElement;
+      for (let depth = 0; depth < 3 && container && container !== document.body; depth++) {
+        const candidates = Array.from(container.querySelectorAll('table')).filter((t) => {
+          if (t === headerTable || !isVisible(t)) return false;
+          if (!(headerTable.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)) return false;
+          const rows = t.tBodies.length ? Array.from(t.tBodies[0].rows) : Array.from(t.rows);
+          return rows.length > 0;
+        });
+
+        if (candidates.length) {
+          const exact = candidates.find((t) => {
+            const firstRow = (t.tBodies[0]?.rows[0]) || t.rows[0];
+            return firstRow && firstRow.cells.length === expectedCols;
+          });
+          return exact || candidates[0];
+        }
+        container = container.parentElement;
+      }
+      return null;
+    }
+
+    // Ưu tiên 1: Chỉ dùng vùng bôi đen nếu người dùng thực sự quét khối nhiều cột/dòng
+    const selection = window.getSelection()?.toString() || '';
+    if (selection.trim() && /[\t\n]/.test(selection) && /\d/.test(selection)) {
+      return { type: 'selection', text: selection.trim() };
+    }
+
+    // Ưu tiên 2: Tự động tìm đúng bảng "Danh sách chỉ số" đang hiển thị
+    const visibleTables = Array.from(document.querySelectorAll('table')).filter(isVisible);
+    let bestCls = null;
+
+    for (const table of visibleTables) {
+      const headerCandidates = table.tHead
+        ? Array.from(table.tHead.rows)
+        : Array.from(table.rows).slice(0, 2);
+
+      let bestHeader = null;
+      let headerRowRef = null;
+      for (const hRow of headerCandidates) {
+        const res = mapHeaderRow(hRow);
+        if (!bestHeader || res.score > bestHeader.score) {
+          bestHeader = res;
+          headerRowRef = hRow;
+        }
+      }
+
+      // Bắt buộc có cả cột "Chỉ số" và "Kết quả"
+      if (!bestHeader || bestHeader.map.name === -1 || bestHeader.map.value === -1) continue;
+
+      let dataRows = [];
+      if (table.tBodies && table.tBodies.length) {
+        for (const tb of table.tBodies) dataRows.push(...Array.from(tb.rows));
+      } else {
+        dataRows = Array.from(table.rows);
+      }
+      dataRows = dataRows.filter((r) => r !== headerRowRef && isVisible(r));
+
+      // Xử lý trường hợp bảng tách header và body thành 2 thẻ <table> riêng
+      if (!dataRows.length) {
+        const bodyTable = findPairedBodyTable(table, bestHeader.colCount);
+        if (bodyTable) {
+          const bodyRows = bodyTable.tBodies?.length
+            ? Array.from(bodyTable.tBodies[0].rows)
+            : Array.from(bodyTable.rows);
+          dataRows = bodyRows.filter(isVisible);
+        }
+      }
+
+      const { map } = bestHeader;
+      const lines = [];
+      let autoStt = 1;
+
+      for (const row of dataRows) {
+        const cells = Array.from(row.cells || []);
+        if (cells.length <= Math.max(map.name, map.value)) continue;
+
+        const name = getCellText(cells[map.name]);
+        const value = getCellText(cells[map.value]);
+        if (!name || !value) continue;
+
+        const nameLower = name.toLowerCase();
+        if (nameLower === 'chỉ số' || nameLower === 'tên xét nghiệm') continue;
+
+        let stt = map.stt !== -1 && cells[map.stt] ? getCellText(cells[map.stt]) : '';
+        if (!/^\d+$/.test(stt)) stt = String(autoStt);
+        autoStt++;
+
+        const ref = map.ref !== -1 && cells[map.ref] ? getCellText(cells[map.ref]) : '';
+        const unit = map.unit !== -1 && cells[map.unit] ? getCellText(cells[map.unit]) : '';
+
+        // Giữ '—' nếu khoảng tham chiếu trống để không bị trượt cột Đơn vị
+        lines.push([stt, name, value, ref || '—', unit].join('\t'));
+      }
+
+      if (lines.length > 0) {
+        const candidate = {
+          type: 'cls_table',
+          score: bestHeader.score,
+          rowCount: lines.length,
+          text: lines.join('\n')
+        };
+        if (
+          !bestCls ||
+          candidate.score > bestCls.score ||
+          (candidate.score === bestCls.score && candidate.rowCount > bestCls.rowCount)
+        ) {
+          bestCls = candidate;
+        }
+      }
+    }
+
+    if (bestCls) return bestCls;
+
+    // Ưu tiên 3 (Dự phòng): Quét bảng hiển thị lớn nhất nếu giao diện khác chuẩn
+    if (visibleTables.length > 0) {
+      let bestTable = visibleTables[0];
+      for (const t of visibleTables) {
         if ((t.innerText || '').length > (bestTable.innerText || '').length) {
           bestTable = t;
         }
       }
-
       let resultText = '';
       for (const row of bestTable.rows) {
-        const rowData = [];
-        for (const cell of row.cells) {
-          rowData.push((cell.innerText || '').replace(/\s+/g, ' ').trim());
-        }
-        resultText += rowData.join('\t') + '\n';
+        if (!isVisible(row)) continue;
+        resultText += Array.from(row.cells).map(getCellText).join('\t') + '\n';
       }
-      return { type: 'table', text: resultText };
+      return { type: 'table', text: resultText.trim() };
     }
 
     return null;
@@ -77,6 +253,8 @@ window.CLS = window.CLS || {};
     const { state, el, parseInputToRows, computeSummary, updateSummary,
             updateStats, renderTable, closeDrawer, pushHistory, showToast, copyToClipboard } = window.CLS;
 
+    const win = getActiveWin();
+    const doc = getActiveDoc();
     const rows = parseInputToRows(el.dataTextarea.value);
 
     if (!rows.length) {
@@ -97,35 +275,29 @@ window.CLS = window.CLS || {};
     state.selectedIndices = main.length ? main : state.currentRows.map((_, i) => i);
     state.lastTableSignature = '';
 
-    requestAnimationFrame(() => el.dataTextarea.blur());
+    if (doc.activeElement === el.dataTextarea) {
+      el.dataTextarea.blur();
+    }
 
-    requestAnimationFrame(() => {
-      if (!el.tableContainer.classList.contains('open')) {
-        state.isTableDirty = true;
-      } else {
-        renderTable();
-        state.isTableDirty = false;
-      }
-      updateSummary();
-      updateStats();
+    if (!el.tableContainer.classList.contains('open')) {
+      state.isTableDirty = true;
+    } else {
+      renderTable();
+      state.isTableDirty = false;
+    }
+    updateSummary();
+    updateStats();
 
-      const sel = state.currentRows.filter((_, i) => state.selectedIndices.includes(i));
-      const { plain } = computeSummary(sel);
-      pushHistory(el.dataTextarea.value, plain, state.currentRows.length);
+    const sel = state.currentRows.filter((_, i) => state.selectedIndices.includes(i));
+    const { plain } = computeSummary(sel);
+    pushHistory(el.dataTextarea.value, plain, state.currentRows.length);
 
-      const doSecondary = () => {
-        if (plain) copyToClipboard(plain);
-        showToast('Đã tóm tắt & sao chép');
-        el.outputCard.classList.remove('animate-pulse');
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => el.outputCard.classList.add('animate-pulse'));
-        });
-      };
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(doSecondary, { timeout: 900 });
-      } else {
-        setTimeout(doSecondary, 60);
-      }
+    if (plain) copyToClipboard(plain);
+    showToast('Đã tóm tắt & sao chép');
+
+    el.outputCard.classList.remove('animate-pulse');
+    win.requestAnimationFrame(() => {
+      win.requestAnimationFrame(() => el.outputCard.classList.add('animate-pulse'));
     });
   };
 
@@ -185,7 +357,52 @@ window.CLS = window.CLS || {};
       });
     });
 
-    /* Nút Quét dữ liệu tự động từ HIS */
+    /* Nút Quét dữ liệu tự động từ HIS (hỗ trợ cả Side Panel lẫn PiP) */
+    function isScannableUrl(url) {
+      return typeof url === 'string' && /^https?:\/\//i.test(url);
+    }
+
+    async function findTargetTabForScan() {
+      // 1. Ưu tiên tab HIS đang mở ở cửa sổ Chrome chính (bỏ qua cửa sổ PiP)
+      if (chrome.windows && chrome.windows.getLastFocused) {
+        try {
+          const win = await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] });
+          const active = win?.tabs?.find(t => t.active && isScannableUrl(t.url));
+          if (active) return active;
+        } catch {}
+      }
+
+      // 2. Dò tất cả cửa sổ đang mở (hỗ trợ đa màn hình hoặc HIS mở cửa sổ popup)
+      if (chrome.windows && chrome.windows.getAll) {
+        try {
+          const allWins = await chrome.windows.getAll({ populate: true, windowTypes: ['normal', 'popup'] });
+          const activeWebTabs = [];
+          const allWebTabs = [];
+
+          for (const w of allWins) {
+            for (const t of (w.tabs || [])) {
+              if (!t.id || !isScannableUrl(t.url)) continue;
+              allWebTabs.push(t);
+              if (t.active) activeWebTabs.push(t);
+            }
+          }
+
+          if (activeWebTabs.length) {
+            activeWebTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+            return activeWebTabs[0];
+          }
+          if (allWebTabs.length) {
+            allWebTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+            return allWebTabs[0];
+          }
+        } catch {}
+      }
+
+      // 3. Dự phòng
+      const [fallback] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return (fallback && isScannableUrl(fallback.url)) ? fallback : null;
+    }
+
     const autoExtractBtn = document.getElementById('autoExtractBtn');
     if (autoExtractBtn) {
       autoExtractBtn.addEventListener('click', async () => {
@@ -193,24 +410,14 @@ window.CLS = window.CLS || {};
           return showToast('Tính năng này chỉ hoạt động trên Chrome Extension.', 3000);
         }
 
-        try {
-          // Tìm đúng tab đang mở ở cửa sổ trình duyệt chính (bỏ qua cửa sổ PiP)
-          let tab = null;
-          if (chrome.windows && chrome.windows.getLastFocused) {
-            try {
-              const normalWin = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
-              const tabs = await chrome.tabs.query({ active: true, windowId: normalWin.id });
-              tab = tabs[0];
-            } catch {}
-          }
-          if (!tab) {
-            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            tab = activeTab;
-          }
-          if (!tab || !tab.id) return showToast('Không tìm thấy tab trang web.');
+        const origHtml = autoExtractBtn.innerHTML;
+        autoExtractBtn.disabled = true;
+        autoExtractBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang quét…';
 
-          if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:'))) {
-            return showToast('Không thể quét trên trang hệ thống trình duyệt.', 3000);
+        try {
+          const tab = await findTargetTabForScan();
+          if (!tab || !tab.id) {
+            return showToast('Không tìm thấy tab trang web HIS đang mở.', 3500);
           }
 
           const results = await chrome.scripting.executeScript({
@@ -220,32 +427,32 @@ window.CLS = window.CLS || {};
 
           const validResults = (results || []).map(r => r.result).filter(Boolean);
 
-          // Ưu tiên 1: Vùng text đang bôi đen (kể cả trong iframe)
           const selectionHit = validResults.find(r => r.type === 'selection' && r.text.trim());
-          // Ưu tiên 2: Bảng nhiều dữ liệu nhất trong tất cả các frame
-          const bestTableHit = validResults
+          const clsTableHit = validResults
+            .filter(r => r.type === 'cls_table' && r.text.trim())
+            .sort((a, b) => (b.score - a.score) || (b.rowCount - a.rowCount))[0];
+          const fallbackTableHit = validResults
             .filter(r => r.type === 'table' && r.text.trim())
             .sort((a, b) => b.text.length - a.text.length)[0];
 
-          const extractedText = selectionHit?.text || bestTableHit?.text || '';
+          const hit = selectionHit || clsTableHit || fallbackTableHit;
 
-          if (extractedText.trim()) {
-            el.dataTextarea.value = extractedText;
+          if (hit && hit.text.trim()) {
+            el.dataTextarea.value = hit.text;
             el.clearTextBtn.classList.remove('hidden');
             window.CLS.performSummarize();
-            if (state.currentRows.length) {
-              showToast(selectionHit ? 'Đã quét vùng bôi đen!' : 'Đã quét bảng dữ liệu!');
-            }
           } else {
-            showToast('Không tìm thấy dữ liệu. Hãy bôi đen bảng chỉ số trên web trước!', 4000);
+            showToast('Không tìm thấy bảng kết quả xét nghiệm trên trang!', 4000);
           }
         } catch (err) {
           console.error('AUTO EXTRACT ERROR:', err);
           showToast(`Lỗi quét: ${err.message}`, 5000);
+        } finally {
+          autoExtractBtn.disabled = false;
+          autoExtractBtn.innerHTML = origHtml;
         }
       });
     }
-
     /* Toggles */
     el.toggleUnitBtn.addEventListener('click', () => {
       state.showUnit = !state.showUnit;
@@ -594,7 +801,7 @@ window.CLS = window.CLS || {};
           el.pipToggleBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
         }
 
-        // Gắn lại các sự kiện mức document/window cho cửa sổ PiP
+        // Gắn lại sự kiện cho cửa sổ PiP
         pipWin.document.addEventListener('click', (e) => {
           el.formatDropdownMenu.classList.add('hidden');
           if (!el.contextMenu.classList.contains('hidden') && !el.contextMenu.contains(e.target)) {
@@ -608,12 +815,27 @@ window.CLS = window.CLS || {};
           el.appBar.classList.toggle('scrolled', y > 8);
         }, { passive: true });
 
-        // Tự động trả giao diện về chỗ cũ khi đóng cửa sổ PiP
         pipWin.addEventListener('pagehide', restoreFromPiP);
+
+        // Nếu mở PiP từ tab trung gian (?launchPip=1), tự quay lại đúng tab HIS phía sau
+        const params = new URLSearchParams(window.location.search);
+        const fromTabId = parseInt(params.get('fromTab'), 10);
+        if (fromTabId && typeof chrome !== 'undefined' && chrome.tabs) {
+          chrome.tabs.update(fromTabId, { active: true }).catch(() => {});
+        }
 
         showToast('Đã mở cửa sổ nổi PiP');
       } catch (err) {
         console.error('PiP ERROR:', err);
+        // Chrome chặn bật PiP trực tiếp trong Side Panel → tự mở tab Extension để bật PiP có quyền Quét
+        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.runtime) {
+          const targetTab = await findTargetTabForScan();
+          const url = chrome.runtime.getURL(
+            'index.html?launchPip=1' + (targetTab?.id ? `&fromTab=${targetTab.id}` : '')
+          );
+          chrome.tabs.create({ url });
+          return;
+        }
         showToast(`Không mở được PiP: ${err.message}`, 4000);
       }
     }
@@ -628,16 +850,35 @@ window.CLS = window.CLS || {};
 
     if (el.pipToggleBtn) el.pipToggleBtn.addEventListener('click', togglePiP);
     if (el.pipRestoreBtn) {
-	const pipFocusBtn = document.getElementById('pipFocusBtn');
-    if (pipFocusBtn) {
-      pipFocusBtn.addEventListener('click', () => {
-        if (state.pipWindow && !state.pipWindow.closed) {
-          state.pipWindow.focus();
-        }
-      });
-    }
       el.pipRestoreBtn.addEventListener('click', () => {
         if (state.pipWindow && !state.pipWindow.closed) state.pipWindow.close();
+      });
+    }
+    const pipFocusBtn = document.getElementById('pipFocusBtn');
+    if (pipFocusBtn) {
+      pipFocusBtn.addEventListener('click', () => {
+        if (state.pipWindow && !state.pipWindow.closed) state.pipWindow.focus();
+      });
+    }
+
+    // Hiện nút mở nhanh 1 chạm khi được chuyển từ Side Panel sang tab Extension
+    if (new URLSearchParams(window.location.search).get('launchPip') === '1') {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="pip-card" style="max-width:360px;">
+          <div class="pip-icon-wrap"><i class="fas fa-up-right-from-square"></i></div>
+          <h3 class="pip-title">Mở cửa sổ nổi Tóm tắt CLS</h3>
+          <p class="pip-desc">Bấm nút bên dưới để bật cửa sổ nổi (PiP) và tự động quay lại trang bệnh án.</p>
+          <button class="btn btn-primary" id="confirmLaunchPipBtn" style="width:100%;">
+            <i class="fas fa-external-link-alt"></i> Mở cửa sổ nổi ngay
+          </button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#confirmLaunchPipBtn').addEventListener('click', async () => {
+        overlay.remove();
+        await openPiP();
       });
     }
   };
