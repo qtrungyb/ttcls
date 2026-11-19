@@ -247,25 +247,33 @@ function extractDataFromHIS() {
   return null;
 }
 
-function pickBestResult(results) {
+function pickBestResult(results, mode = 'manual') {
   const validResults = (results || []).map((r) => r.result).filter(Boolean);
-  const selectionHit = validResults.find((r) => r.type === 'selection' && r.text.trim());
   const clsTableHit = validResults
     .filter((r) => r.type === 'cls_table' && r.text.trim())
     .sort((a, b) => (b.score - a.score) || (b.rowCount - a.rowCount))[0];
+
+  // Chế độ tự động: CHỈ nhận bảng kết quả xét nghiệm chuẩn, bỏ qua bôi đen và bảng khác
+  if (mode === 'auto') {
+    return clsTableHit || null;
+  }
+
+  const selectionHit = validResults.find((r) => r.type === 'selection' && r.text.trim());
   const fallbackTableHit = validResults
     .filter((r) => r.type === 'table' && r.text.trim())
     .sort((a, b) => b.text.length - a.text.length)[0];
+
   return selectionHit || clsTableHit || fallbackTableHit || null;
 }
 
-async function handleScanHIS(senderTabId) {
+async function handleScanHIS(senderTabId, mode = 'manual') {
   const tab = await findTargetTabForScan(senderTabId);
   if (!tab || !tab.id) {
+    if (mode === 'auto') return { ok: true, empty: true };
     return { ok: false, error: 'Không tìm thấy tab trang bệnh án (HIS) đang mở.' };
   }
 
-  // Bước 1: Quét nhanh khung chính trước (không bị treo bởi iframe chậm)
+  // Bước 1: Quét nhanh khung chính trước
   let mainHit = null;
   try {
     const mainRes = await withTimeout(
@@ -273,11 +281,12 @@ async function handleScanHIS(senderTabId) {
         target: { tabId: tab.id },
         func: extractDataFromHIS
       }),
-      2500,
+      mode === 'auto' ? 1500 : 2500,
       'Quét khung chính quá thời gian.'
     );
-    mainHit = pickBestResult(mainRes);
+    mainHit = pickBestResult(mainRes, mode);
   } catch (err) {
+    if (mode === 'auto') return { ok: true, empty: true };
     return { ok: false, error: `Không đọc được tab "${tab.title || tab.url}": ${err.message}` };
   }
 
@@ -285,7 +294,7 @@ async function handleScanHIS(senderTabId) {
     return { ok: true, text: mainHit.text, type: mainHit.type };
   }
 
-  // Bước 2: Nếu bảng nằm trong iframe, quét thêm allFrames có giới hạn 3 giây
+  // Bước 2: Nếu chưa thấy ở khung chính, kiểm tra thêm các iframe
   let frameHit = null;
   try {
     const frameRes = await withTimeout(
@@ -293,10 +302,10 @@ async function handleScanHIS(senderTabId) {
         target: { tabId: tab.id, allFrames: true },
         func: extractDataFromHIS
       }),
-      3000,
+      mode === 'auto' ? 2000 : 3000,
       'iframe phản hồi chậm.'
     );
-    frameHit = pickBestResult(frameRes);
+    frameHit = pickBestResult(frameRes, mode);
   } catch {}
 
   const best = (frameHit && (frameHit.type === 'selection' || frameHit.type === 'cls_table'))
@@ -306,15 +315,56 @@ async function handleScanHIS(senderTabId) {
   if (best && best.text && best.text.trim()) {
     return { ok: true, text: best.text, type: best.type };
   }
+
+  if (mode === 'auto') return { ok: true, empty: true };
   return { ok: false, error: `Không thấy bảng xét nghiệm ở tab: ${tab.title || tab.url}` };
 }
 
+// Copy vào clipboard thông qua chính tab HIS đang có tiêu điểm (focus)
+function copyTextInPage(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+  document.body.appendChild(ta);
+  ta.focus({ preventScroll: true });
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  ta.remove();
+  return ok;
+}
+
+async function handleCopyInActiveTab(senderTabId, text) {
+  const tab = await findTargetTabForScan(senderTabId);
+  if (!tab || !tab.id) return { ok: false };
+  try {
+    const res = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: copyTextInPage,
+      args: [text]
+    });
+    return { ok: Boolean(res?.[0]?.result) };
+  } catch {
+    return { ok: false };
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (!msg || msg.type !== 'CLS_SCAN_HIS') return;
+  if (!msg) return;
 
-  handleScanHIS(sender?.tab?.id)
-    .then((res) => sendResponse(res))
-    .catch((err) => sendResponse({ ok: false, error: err?.message || String(err) }));
+  if (msg.type === 'CLS_SCAN_HIS') {
+    handleScanHIS(sender?.tab?.id, msg.mode || 'manual')
+      .then((res) => sendResponse(res))
+      .catch((err) => sendResponse({ ok: false, error: err?.message || String(err) }));
+    return true;
+  }
 
-  return true;
+  if (msg.type === 'CLS_COPY_TEXT' && msg.text) {
+    handleCopyInActiveTab(sender?.tab?.id, msg.text)
+      .then((res) => sendResponse(res))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
 });

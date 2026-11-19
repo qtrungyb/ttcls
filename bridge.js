@@ -1,20 +1,25 @@
 /* =========================================================
    BRIDGE — Cầu nối giữa qtrungyb.github.io (kể cả PiP)
-            và Chrome Extension qua CustomEvent
+            và Chrome Extension
    ========================================================= */
 (function() {
   document.documentElement.dataset.clsExtReady = '1';
 
-  document.addEventListener('cls-scan-request', (event) => {
-    let req = null;
+  function parseDetail(ev) {
     try {
-      req = typeof event.detail === 'string' ? JSON.parse(event.detail) : event.detail;
-    } catch {}
+      return typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail;
+    } catch {
+      return null;
+    }
+  }
+
+  document.addEventListener('cls-scan-request', (event) => {
+    const req = parseDetail(event);
     if (!req || !req.requestId) return;
 
     const requestId = req.requestId;
+    const mode = req.mode || 'manual';
 
-    // Báo ngay cho trang web biết bridge.js đã nhận yêu cầu
     document.dispatchEvent(
       new CustomEvent('cls-scan-ack', { detail: JSON.stringify({ requestId }) })
     );
@@ -28,7 +33,7 @@
     };
 
     try {
-      chrome.runtime.sendMessage({ type: 'CLS_SCAN_HIS' }, (response) => {
+      chrome.runtime.sendMessage({ type: 'CLS_SCAN_HIS', mode }, (response) => {
         if (chrome.runtime.lastError) {
           reply({
             ok: false,
@@ -38,11 +43,22 @@
         }
         reply(response || { ok: false, error: 'Background không trả về dữ liệu.' });
       });
-    } catch (err) {
+    } catch {
       reply({
         ok: false,
         error: 'Extension vừa tải lại — hãy F5 trang Tóm tắt CLS rồi thử lại.'
       });
     }
+  });
+
+  // Kênh copy dự phòng khi tự động quét (lúc đó tab HIS đang focus, PiP không focus)
+  document.addEventListener('cls-copy-request', (event) => {
+    const req = parseDetail(event);
+    if (!req || !req.text) return;
+    try {
+      chrome.runtime.sendMessage({ type: 'CLS_COPY_TEXT', text: req.text }, () => {
+        void chrome.runtime.lastError;
+      });
+    } catch {}
   });
 })();
