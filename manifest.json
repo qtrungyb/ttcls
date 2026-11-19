@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tóm tắt CLS",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Tiện ích tóm tắt và quét nhanh kết quả Cận lâm sàng.",
   "icons": {
     "128": "icon.png"
