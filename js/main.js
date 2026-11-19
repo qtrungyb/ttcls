@@ -376,27 +376,54 @@ window.CLS = window.CLS || {};
         if (document.documentElement.dataset.clsExtReady !== '1') {
           return resolve({
             ok: false,
-            error: 'Chưa kết nối Extension. Hãy bật Extension "Tóm tắt CLS" và F5 lại trang web!'
+            error: 'Chưa kết nối Extension. Hãy bật Extension "Tóm tắt CLS" và F5 lại trang!'
           });
         }
 
         const requestId = 'scan_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-        const timer = setTimeout(() => {
-          window.removeEventListener('message', onReply);
-          resolve({ ok: false, error: 'Hết thời gian chờ Extension — hãy F5 lại trang Tóm tắt CLS.' });
-        }, 4000);
+        let acked = false;
 
-        function onReply(event) {
-          if (event.source !== window) return;
-          const d = event.data;
-          if (!d || d.type !== 'CLS_SCAN_RESPONSE' || d.requestId !== requestId) return;
+        const cleanup = () => {
           clearTimeout(timer);
-          window.removeEventListener('message', onReply);
+          document.removeEventListener('cls-scan-ack', onAck);
+          document.removeEventListener('cls-scan-response', onReply);
+        };
+
+        const timer = setTimeout(() => {
+          cleanup();
+          resolve({
+            ok: false,
+            error: acked
+              ? 'Background Extension không phản hồi — kiểm tra mục Lỗi ở chrome://extensions.'
+              : 'bridge.js chưa nhận lệnh — hãy Reload Extension và Ctrl+F5 trang Tóm tắt CLS.'
+          });
+        }, 7000);
+
+        function parseDetail(ev) {
+          try {
+            return typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail;
+          } catch {
+            return null;
+          }
+        }
+
+        function onAck(ev) {
+          const d = parseDetail(ev);
+          if (d && d.requestId === requestId) acked = true;
+        }
+
+        function onReply(ev) {
+          const d = parseDetail(ev);
+          if (!d || d.requestId !== requestId) return;
+          cleanup();
           resolve(d);
         }
 
-        window.addEventListener('message', onReply);
-        window.postMessage({ type: 'CLS_SCAN_REQUEST', requestId }, window.location.origin);
+        document.addEventListener('cls-scan-ack', onAck);
+        document.addEventListener('cls-scan-response', onReply);
+        document.dispatchEvent(
+          new CustomEvent('cls-scan-request', { detail: JSON.stringify({ requestId }) })
+        );
       });
     }
 
