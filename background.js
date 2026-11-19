@@ -8,49 +8,46 @@ chrome.sidePanel
 function isScannableUrl(url) {
   if (typeof url !== 'string') return false;
   if (!/^https?:\/\//i.test(url)) return false;
-  // Bỏ qua chính trang Tóm tắt CLS trên GitHub
   if (/^https?:\/\/qtrungyb\.github\.io\b/i.test(url)) return false;
   return true;
 }
 
+function withTimeout(promise, ms, msg) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms))
+  ]);
+}
+
 async function findTargetTabForScan(senderTabId) {
-  // 1. Ưu tiên tab HIS đang mở trên cửa sổ Chrome chính (bỏ qua cửa sổ PiP)
+  // 1. Ưu tiên tab HIS đang mở ở cửa sổ Chrome chính
   try {
     const win = await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] });
     const active = win?.tabs?.find(
-      (t) => t.active && t.id !== senderTabId && isScannableUrl(t.url)
+      (t) => t.active && !t.discarded && t.id !== senderTabId && isScannableUrl(t.url)
     );
     if (active) return active;
   } catch {}
 
-  // 2. Dò tất cả cửa sổ đang mở (hỗ trợ đa màn hình hoặc HIS mở dạng popup)
+  // 2. Lấy tab web đang active trên bất kỳ cửa sổ nào
   try {
-    const allWins = await chrome.windows.getAll({ populate: true, windowTypes: ['normal', 'popup'] });
-    const activeWebTabs = [];
-    const allWebTabs = [];
+    const activeTabs = await chrome.tabs.query({ active: true });
+    const validActive = activeTabs
+      .filter((t) => t.id && !t.discarded && t.id !== senderTabId && isScannableUrl(t.url))
+      .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+    if (validActive.length) return validActive[0];
 
-    for (const w of allWins) {
-      for (const t of (w.tabs || [])) {
-        if (!t.id || t.id === senderTabId || !isScannableUrl(t.url)) continue;
-        allWebTabs.push(t);
-        if (t.active) activeWebTabs.push(t);
-      }
-    }
-
-    if (activeWebTabs.length) {
-      activeWebTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-      return activeWebTabs[0];
-    }
-    if (allWebTabs.length) {
-      allWebTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-      return allWebTabs[0];
-    }
+    // 3. Nếu đang dừng ở tab GitHub -> lấy tab web vừa xem gần nhất
+    const allTabs = await chrome.tabs.query({});
+    const validAll = allTabs
+      .filter((t) => t.id && !t.discarded && t.id !== senderTabId && isScannableUrl(t.url))
+      .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+    if (validAll.length) return validAll[0];
   } catch {}
 
   return null;
 }
 
-// Hàm bơm trực tiếp vào trang HIS (tự lọc bảng Danh sách chỉ số đang hiển thị)
 function extractDataFromHIS() {
   const clean = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 
@@ -250,17 +247,7 @@ function extractDataFromHIS() {
   return null;
 }
 
-async function handleScanHIS(senderTabId) {
-  const tab = await findTargetTabForScan(senderTabId);
-  if (!tab || !tab.id) {
-    return { ok: false, error: 'Không tìm thấy tab trang bệnh án (HIS) đang mở.' };
-  }
-
-  const results = await chrome.scripting.executeScript({
-    target: { tabId: tab.id, allFrames: true },
-    func: extractDataFromHIS
-  });
-
+function pickBestResult(results) {
   const validResults = (results || []).map((r) => r.result).filter(Boolean);
   const selectionHit = validResults.find((r) => r.type === 'selection' && r.text.trim());
   const clsTableHit = validResults
@@ -269,12 +256,57 @@ async function handleScanHIS(senderTabId) {
   const fallbackTableHit = validResults
     .filter((r) => r.type === 'table' && r.text.trim())
     .sort((a, b) => b.text.length - a.text.length)[0];
+  return selectionHit || clsTableHit || fallbackTableHit || null;
+}
 
-  const hit = selectionHit || clsTableHit || fallbackTableHit;
-  if (hit && hit.text.trim()) {
-    return { ok: true, text: hit.text, type: hit.type };
+async function handleScanHIS(senderTabId) {
+  const tab = await findTargetTabForScan(senderTabId);
+  if (!tab || !tab.id) {
+    return { ok: false, error: 'Không tìm thấy tab trang bệnh án (HIS) đang mở.' };
   }
-  return { ok: false, error: 'Không tìm thấy bảng kết quả xét nghiệm trên trang HIS.' };
+
+  // Bước 1: Quét nhanh khung chính trước (không bị treo bởi iframe chậm)
+  let mainHit = null;
+  try {
+    const mainRes = await withTimeout(
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: extractDataFromHIS
+      }),
+      2500,
+      'Quét khung chính quá thời gian.'
+    );
+    mainHit = pickBestResult(mainRes);
+  } catch (err) {
+    return { ok: false, error: `Không đọc được tab "${tab.title || tab.url}": ${err.message}` };
+  }
+
+  if (mainHit && (mainHit.type === 'selection' || mainHit.type === 'cls_table')) {
+    return { ok: true, text: mainHit.text, type: mainHit.type };
+  }
+
+  // Bước 2: Nếu bảng nằm trong iframe, quét thêm allFrames có giới hạn 3 giây
+  let frameHit = null;
+  try {
+    const frameRes = await withTimeout(
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id, allFrames: true },
+        func: extractDataFromHIS
+      }),
+      3000,
+      'iframe phản hồi chậm.'
+    );
+    frameHit = pickBestResult(frameRes);
+  } catch {}
+
+  const best = (frameHit && (frameHit.type === 'selection' || frameHit.type === 'cls_table'))
+    ? frameHit
+    : (mainHit || frameHit);
+
+  if (best && best.text && best.text.trim()) {
+    return { ok: true, text: best.text, type: best.type };
+  }
+  return { ok: false, error: `Không thấy bảng xét nghiệm ở tab: ${tab.title || tab.url}` };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -284,5 +316,5 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     .then((res) => sendResponse(res))
     .catch((err) => sendResponse({ ok: false, error: err?.message || String(err) }));
 
-  return true; // giữ kênh mở cho phản hồi bất đồng bộ
+  return true;
 });
