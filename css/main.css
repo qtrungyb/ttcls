@@ -1409,40 +1409,179 @@ body.density-compact .panel-head { padding: 7px 14px; font-size: 10px; }
   gap: 5px;
 }
 
-/* Tinh chỉnh giao diện BÊN TRONG cửa sổ PiP cho gọn */
-body.pip-mode .app-shell {
-  padding: 0 10px 24px;
+/* Nút chỉnh mờ/rõ (chỉ hiện trong PiP) */
+.pip-opacity-wrap {
+  display: none;
+  position: relative;
+  align-items: center;
+}
+body.pip-mode .pip-opacity-wrap {
+  display: flex;
+}
+.pip-opacity-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 175px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--sh-lg);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pip-opacity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.pip-opacity-head b {
+  font-family: var(--f-mono);
+  color: var(--primary-text);
+}
+#pipOpacitySlider {
+  width: 100%;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.pip-hover-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.pip-hover-opt input {
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* Hiệu ứng làm mờ / rõ nội dung PiP */
+body.pip-mode .workspace,
+body.pip-mode .card-quick {
+  opacity: var(--pip-opacity, 1);
+  transition: opacity 180ms ease;
 }
 body.pip-mode .app-bar {
-  height: 44px;
+  opacity: max(var(--pip-opacity, 1), 0.55);
+  transition: opacity 180ms ease;
+}
+body.pip-mode.pip-hover-clear:not(.pip-adjusting):hover .workspace,
+body.pip-mode.pip-hover-clear:not(.pip-adjusting):hover .card-quick,
+body.pip-mode.pip-hover-clear:not(.pip-adjusting):hover .app-bar {
+  opacity: 1;
+}
+
+/* Tinh chỉnh giao diện BÊN TRONG cửa sổ PiP — luôn ưu tiên Kết quả */
+body.pip-mode .app-shell {
+  padding: 0 10px 20px;
+}
+body.pip-mode .app-bar {
+  height: 40px;
+}
+body.pip-mode .brand-title {
+  white-space: nowrap;
 }
 body.pip-mode .workspace {
   grid-template-columns: 1fr;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 6px;
+}
+/* Đưa khối Kết quả lên đầu tiên trong chế độ PiP */
+body.pip-mode .card-output {
+  order: -1;
 }
 body.pip-mode .card-head {
-  padding: 8px 11px;
+  padding: 7px 10px;
+  flex-wrap: nowrap;
 }
 body.pip-mode .input-wrap {
-  padding: 9px 11px;
+  padding: 8px 10px;
   gap: 8px;
 }
 body.pip-mode #dataInput {
-  height: 92px;
+  height: 82px;
   font-size: 11.5px;
 }
 body.pip-mode .summary-body {
-  padding: 10px 12px;
-  min-height: 100px;
-  max-height: 35vh;
+  padding: 9px 11px;
+  min-height: 76px;
+  max-height: calc(100vh - 155px);
   font-size: 12.5px;
+  line-height: 1.65;
 }
 body.pip-mode .card-quick {
   margin-top: 10px;
 }
 body.pip-mode .transfer-footer {
   display: none;
+}
+
+/* Khi kéo cửa sổ PiP hẹp ngang hoặc zoom in */
+@media (max-width: 330px) {
+  body.pip-mode .brand-title { font-size: 12.5px; }
+  body.pip-mode .card-output .card-title { display: none; }
+}
+@media (max-width: 260px) {
+  body.pip-mode .brand-title { display: none; }
+}
+
+/* Khi kéo cửa sổ PiP thấp trung bình */
+@media (max-height: 360px) {
+  body.pip-mode .app-shell { padding: 0 8px 10px; }
+  body.pip-mode .app-bar { height: 34px; }
+  body.pip-mode .brand-icon { width: 24px; height: 24px; font-size: 11px; }
+  body.pip-mode .workspace { gap: 8px; margin-top: 5px; }
+  body.pip-mode .card-head { padding: 5px 9px; }
+  body.pip-mode .card-output .summary-body {
+    min-height: 52px;
+    max-height: calc(100vh - 122px);
+    padding: 7px 9px;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  body.pip-mode .card-output .card-footer { padding: 5px 8px; }
+}
+
+/* Khi kéo cửa sổ PiP rất nhỏ (dạng hộp mini góc màn hình) → chỉ hiện Kết quả */
+@media (max-height: 250px) {
+  body.pip-mode .app-shell { padding: 0 6px 6px; }
+  body.pip-mode .app-bar { height: 30px; }
+  body.pip-mode .app-actions .icon-btn { width: 26px; height: 26px; font-size: 12px; }
+  body.pip-mode .workspace { margin-top: 4px; gap: 0; }
+  body.pip-mode .card-input,
+  body.pip-mode .card-quick,
+  body.pip-mode .card-output .card-footer {
+    display: none !important;
+  }
+  body.pip-mode .card-output .card-head { padding: 4px 8px; }
+  body.pip-mode .card-output .summary-body {
+    min-height: 44px;
+    max-height: calc(100vh - 76px);
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
+
+/* Khi thu nhỏ tối đa thành dải mảnh */
+@media (max-height: 150px) {
+  body.pip-mode .app-bar { height: 26px; }
+  body.pip-mode #settingsBtn,
+  body.pip-mode #themeToggle { display: none; }
+  body.pip-mode .card-output .card-head { padding: 3px 6px; }
+  body.pip-mode .card-output .summary-body {
+    min-height: 34px;
+    max-height: calc(100vh - 62px);
+    padding: 4px 7px;
+  }
 }
 /* ---------------------------------------------------------
    14) AUTO-SCAN TOGGLE BUTTON
