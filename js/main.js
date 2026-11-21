@@ -249,7 +249,7 @@ window.CLS = window.CLS || {};
     return null;
   }
 
-  window.CLS.performSummarize = function() {
+   window.CLS.performSummarize = function(meta = null) {
     const { state, el, parseInputToRows, computeSummary, updateSummary,
             updateStats, renderTable, closeDrawer, pushHistory, showToast, copyToClipboard } = window.CLS;
 
@@ -279,40 +279,375 @@ window.CLS = window.CLS || {};
       el.dataTextarea.blur();
     }
 
-    if (!el.tableContainer.classList.contains('open')) {
-      state.isTableDirty = true;
-    } else {
-      renderTable();
-      state.isTableDirty = false;
-    }
-    updateSummary();
-    updateStats();
+    // Nhánh chế độ Gộp nhiều phiếu trên Trang chính & PiP
+    if (state.mergeEnabled && window.CLS.upsertWebMergedSheet) {
+      const info = window.CLS.upsertWebMergedSheet(el.dataTextarea.value.trim(), rows, meta);
+      updateSummary();
+      updateStats();
+      const mergedPlain = window.CLS.getSummaryPlainText();
+      pushHistory(el.dataTextarea.value, mergedPlain, state.currentRows.length);
+      if (mergedPlain) copyToClipboard(mergedPlain);
 
-    const sel = state.currentRows.filter((_, i) => state.selectedIndices.includes(i));
-    const { plain } = computeSummary(sel);
-    pushHistory(el.dataTextarea.value, plain, state.currentRows.length);
+      const toastMsg = info.patientSwitched
+        ? `Đổi BN ${state.mergePatient?.name || state.mergePatient?.id} — gộp mới (${info.label})`
+        : (info.isUpdated
+          ? `Đã cập nhật ${info.label} (${info.count} phiếu) & copy`
+          : `Đã gộp +${info.label} (${info.count} phiếu) & copy`);
+      showToast(toastMsg, 2200);
 
-    if (plain) copyToClipboard(plain);
-    showToast('Đã tóm tắt & sao chép');
-
-    el.outputCard.classList.remove('animate-pulse');
-    win.requestAnimationFrame(() => {
-      win.requestAnimationFrame(() => el.outputCard.classList.add('animate-pulse'));
-    });
-	// Tự cuộn lên đầu cửa sổ PiP để hiện ngay khối Kết quả mới nhất
-    if (state.pipWindow && !state.pipWindow.closed) {
-      state.pipWindow.scrollTo({ top: 0, behavior: 'smooth' });
+      el.outputCard.classList.remove('animate-pulse');
+      win.requestAnimationFrame(() => {
+        win.requestAnimationFrame(() => el.outputCard.classList.add('animate-pulse'));
+      });
+      if (state.pipWindow && !state.pipWindow.closed) {
+        state.pipWindow.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
     }
   };
 
   window.CLS.bindEvents = function() {
     const { state, el } = window.CLS;
     const { updateUI, switchTab, resetAbbrForm, showToast,
-            getSummaryPlainText, updateSummary, updateStats, renderTable, renderQuick,
+            getSummaryPlainText: origGetSummaryPlainText,
+            updateSummary: origUpdateSummary,
+            updateStats: origUpdateStats,
+            renderTable, renderQuick,
             openDrawer, closeDrawer, syncSelection,
             deleteQuickItem, saveQuickItem,
             resetAbbrToDefaults, copyToClipboard, debounce,
             SPECIAL_NAMES, STORAGE } = window.CLS;
+
+    /* ---------- Chế độ Gộp nhiều phiếu trên Trang chính & PiP ---------- */
+    const WEB_MERGE_KEY = 'cls_web_merge_session_v1';
+    const WEB_MERGE_ON_KEY = 'cls_web_merge_enabled';
+    const WEB_MERGE_FILTER_KEY = 'cls_web_merge_filter';
+    const WEB_MERGE_PRIORITY = { CTM: 1, SHM: 2, ĐGĐ: 3, MD: 4, TPTNT: 5, ĐM: 6, KM: 7, VS: 8, XN: 9 };
+
+    const mergeToggleBtn = document.getElementById('mergeToggleBtn');
+    const mergeBtnText = document.getElementById('mergeBtnText');
+    const webMergeBar = document.getElementById('webMergeBar');
+    const webPatientBadge = document.getElementById('webPatientBadge');
+    const webMergeChips = document.getElementById('webMergeChips');
+    const webClearMergeBtn = document.getElementById('webClearMergeBtn');
+    const webMergeFilterBtns = document.querySelectorAll('#webMergeFilters .web-mf-btn');
+    const summaryTextEl = document.getElementById('summaryText');
+    const totalIndEl = document.getElementById('totalIndicators');
+    const abnIndEl = document.getElementById('abnormalIndicators');
+    const selBadgeEl = document.getElementById('selectedCountBadge');
+
+    state.mergeEnabled = localStorage.getItem(WEB_MERGE_ON_KEY) === 'true';
+    state.mergeFilter = localStorage.getItem(WEB_MERGE_FILTER_KEY) || 'main';
+    state.mergePatient = { id: '', name: '' };
+    state.mergedSheets = [];
+
+    const escHtml = (s) => s ? String(s).replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) : '';
+    const escAttr = (s) => s ? String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : '';
+
+    function webRowOverlap(rowsA, rowsB) {
+      if (!rowsA?.length || !rowsB?.length) return 0;
+      const setA = new Set(rowsA.map((r) => r.cleanName.toLowerCase()));
+      const setB = new Set(rowsB.map((r) => r.cleanName.toLowerCase()));
+      let common = 0;
+      for (const n of setA) if (setB.has(n)) common++;
+      return common / Math.min(setA.size, setB.size);
+    }
+
+    function webShortLabel(serviceName, rows) {
+      const names = (rows || []).map((r) => r.cleanName.toLowerCase()).join(' | ');
+      const svc = String(serviceName || '').toLowerCase();
+      if (svc.includes('nước tiểu') || svc.includes('tptnt') || names.includes('tỷ trọng') || names.includes('urobilinogen') || names.includes('nitrit') || names.includes('cetonic') || names.includes('keton')) return 'TPTNT';
+      if (names.includes('huyết sắc tố') || names.includes('hematocrit') || names.includes('số lượng hồng cầu') || names.includes('số lượng tiểu cầu') || names.includes('số lượng bạch cầu') || names.includes('thể tích trung bình hồng cầu') || /\bmcv\b|\bmch\b|\bmchc\b/.test(names)) return 'CTM';
+      if (/\binr\b|\baptt\b/.test(names) || names.includes('fibrinogen') || names.includes('prothrombin') || names.includes('d-dimer')) return 'ĐM';
+      if (/\bpco2\b|\bpo2\b|\bhco3\b/.test(names)) return 'KM';
+      if (svc.includes('miễn dịch') || names.includes('ferritin') || names.includes('procalcitonin') || names.includes('troponin') || names.includes('pro-bnp') || names.includes('hbsag') || names.includes('anti-hbs') || names.includes('anti-hcv') || names.includes('dengue') || names.includes('beta-hcg') || names.includes('cortisol') || names.includes('insulin') || names.includes('vitamin d') || names.includes('vitamin b12') || names.includes('acid folic') || /\b(tsh|ft3|ft4|afp|cea|psa|hiv|ns1|ige|igg|igm|aso|anti-ccp)\b/.test(names)) return 'MD';
+      if (names.includes('sgpt') || names.includes('sgot') || /\b(alt|ast|ggt|crp|hdl|ldl|ldh|ck-mb|alp|tibc|nh3)\b/.test(names) || names.includes('creatinin') || names.includes('urê') || names.includes('urea') || names.includes('glucose') || names.includes('cholesterol') || names.includes('triglycerid') || names.includes('acid uric') || names.includes('hba1c') || names.includes('amylase') || names.includes('lipase') || names.includes('albumin') || names.includes('protein') || names.includes('bilirubin') || names.includes('sắt huyết thanh') || names.includes('định lượng sắt') || names.includes('transferrin') || names.includes('canxi') || names.includes('calcium') || names.includes('magie') || names.includes('phospho') || names.includes('lactat')) return 'SHM';
+      if (svc.includes('điện giải') || names.includes('natri') || names.includes('kali') || names.includes('clo') || names.includes('na+') || names.includes('k+')) return 'ĐGĐ';
+      if (svc.includes('huyết học') || svc.includes('công thức máu') || svc.includes('tế bào máu')) return 'CTM';
+      if (svc.includes('hóa sinh') || svc.includes('sinh hóa')) return 'SHM';
+      if (svc.includes('đông máu')) return 'ĐM';
+      if (svc.includes('vi sinh')) return 'VS';
+      if (svc.includes('khí máu')) return 'KM';
+      if (serviceName) return serviceName.replace(/^xét nghiệm\s+/i, '').trim().slice(0, 18);
+      return 'XN';
+    }
+
+    function sortWebMergedSheets() {
+      state.mergedSheets.sort((a, b) => (WEB_MERGE_PRIORITY[a.label] || 9) - (WEB_MERGE_PRIORITY[b.label] || 9));
+    }
+
+    function saveWebMergeSession(syncToExt = true) {
+      const payload = {
+        patient: state.mergePatient,
+        sheets: state.mergedSheets.map((s) => ({
+          key: s.key,
+          label: s.label,
+          serviceName: s.serviceName,
+          resultTime: s.resultTime,
+          rawText: s.rawText
+        })),
+        updatedAt: Date.now()
+      };
+      try { localStorage.setItem(WEB_MERGE_KEY, JSON.stringify(payload)); } catch {}
+      if (syncToExt && document.documentElement.dataset.clsExtReady === '1') {
+        document.dispatchEvent(new CustomEvent('cls-merge-save', { detail: JSON.stringify(payload) }));
+      }
+    }
+
+    function applyWebMergePayload(saved) {
+      if (!saved || typeof saved !== 'object') return;
+      state.mergePatient = { id: saved.patient?.id || '', name: saved.patient?.name || '' };
+      state.mergedSheets = Array.isArray(saved.sheets)
+        ? saved.sheets
+            .map((s) => {
+              const rows = window.CLS.parseInputToRows(s.rawText);
+              if (!rows.length) return null;
+              return {
+                key: s.key,
+                label: webShortLabel(s.serviceName, rows),
+                serviceName: s.serviceName || '',
+                resultTime: s.resultTime || '',
+                rawText: s.rawText,
+                rows
+              };
+            })
+            .filter(Boolean)
+        : [];
+      sortWebMergedSheets();
+      if (state.mergedSheets.length) {
+        state.lastAutoScannedText = state.mergedSheets[state.mergedSheets.length - 1].rawText;
+      }
+    }
+
+    function buildWebMergedResult() {
+      const total = state.mergedSheets.reduce((sum, s) => sum + s.rows.length, 0);
+      const abn = state.mergedSheets.reduce((sum, s) => sum + s.rows.filter((r) => r._status === 'abnormal').length, 0);
+      let selectedCount = 0;
+
+      if (!state.mergedSheets.length) {
+        return { total: 0, abn: 0, selectedCount: 0, html: '', plain: '' };
+      }
+
+      const groups = [];
+      for (const sheet of state.mergedSheets) {
+        let filtered = sheet.rows;
+        if (state.mergeFilter === 'main') {
+          const m = sheet.rows.filter((r) => SPECIAL_NAMES.includes(r.cleanName));
+          filtered = m.length ? m : sheet.rows;
+        } else if (state.mergeFilter === 'abnormal') {
+          filtered = sheet.rows.filter((r) => r._status === 'abnormal');
+        }
+        if (!filtered.length) continue;
+        selectedCount += filtered.length;
+
+        const target = groups.find((g) => g.label === sheet.label && webRowOverlap(g.rows, filtered) === 0);
+        if (target) target.rows.push(...filtered);
+        else groups.push({ label: sheet.label, rows: [...filtered] });
+      }
+
+      const htmlBlocks = [];
+      const plainBlocks = [];
+      for (const g of groups) {
+        const { html, plain } = window.CLS.computeSummary(g.rows);
+        if (!plain) continue;
+        if (state.copyFormat === 'newline') {
+          htmlBlocks.push(`<span class="grp-label">- ${escHtml(g.label)}:</span><br>${html}`);
+          plainBlocks.push(`- ${g.label}:\n${plain}`);
+        } else {
+          htmlBlocks.push(`<span class="grp-label">- ${escHtml(g.label)}:</span> ${html}`);
+          plainBlocks.push(`- ${g.label}: ${plain}`);
+        }
+      }
+
+      return { total, abn, selectedCount, html: htmlBlocks.join('<br>'), plain: plainBlocks.join('\n') };
+    }
+
+    function renderWebMergeUI() {
+      if (mergeToggleBtn) mergeToggleBtn.classList.toggle('active', state.mergeEnabled);
+      if (mergeBtnText) {
+        mergeBtnText.textContent = state.mergeEnabled && state.mergedSheets.length
+          ? `Gộp (${state.mergedSheets.length})`
+          : 'Gộp';
+      }
+      if (!webMergeBar) return;
+      webMergeBar.classList.toggle('hidden', !state.mergeEnabled);
+      if (!state.mergeEnabled) return;
+
+      const p = state.mergePatient;
+      if (webPatientBadge) {
+        if (p.name && p.id) webPatientBadge.textContent = `BN: ${p.name} (${p.id})`;
+        else if (p.name) webPatientBadge.textContent = `BN: ${p.name}`;
+        else if (p.id) webPatientBadge.textContent = `Mã BN: ${p.id}`;
+        else webPatientBadge.textContent = 'Chế độ gộp nhiều phiếu XN';
+      }
+      if (webClearMergeBtn) webClearMergeBtn.classList.toggle('hidden', state.mergedSheets.length === 0);
+      webMergeFilterBtns.forEach((b) => b.classList.toggle('active', b.dataset.filter === state.mergeFilter));
+
+      if (webMergeChips) {
+        if (!state.mergedSheets.length) {
+          webMergeChips.innerHTML = '<span class="web-merge-empty">Chuyển lần lượt các phiếu trên HIS hoặc dán nhiều bảng để tự động gộp…</span>';
+        } else {
+          webMergeChips.innerHTML = state.mergedSheets.map((s, idx) => {
+            const tip = [s.serviceName || s.label, s.resultTime].filter(Boolean).join(' — ');
+            return `<span class="web-merge-chip" data-idx="${idx}" title="${escAttr(tip)}"><span>${escHtml(s.label)}</span><span class="web-merge-chip-count">(${s.rows.length})</span><button class="web-merge-chip-del" data-del="${idx}" title="Bỏ phiếu này">&times;</button></span>`;
+          }).join('');
+        }
+      }
+    }
+
+    function updateSummary() {
+      renderWebMergeUI();
+      if (!state.mergeEnabled) return origUpdateSummary();
+      const res = buildWebMergedResult();
+      if (summaryTextEl) {
+        summaryTextEl.innerHTML = res.html || '<div class="empty-state"><i class="fas fa-layer-group"></i><p>Chưa có phiếu nào được gộp</p></div>';
+      }
+    }
+
+    function updateStats() {
+      if (!state.mergeEnabled) return origUpdateStats();
+      const res = buildWebMergedResult();
+      if (totalIndEl) totalIndEl.textContent = res.total;
+      if (abnIndEl) abnIndEl.textContent = res.abn;
+      if (selBadgeEl) selBadgeEl.textContent = `${res.selectedCount}/${res.total}`;
+    }
+
+    function getSummaryPlainText() {
+      if (!state.mergeEnabled) return origGetSummaryPlainText();
+      return buildWebMergedResult().plain;
+    }
+
+    window.CLS.updateSummary = updateSummary;
+    window.CLS.updateStats = updateStats;
+    window.CLS.getSummaryPlainText = getSummaryPlainText;
+
+    window.CLS.upsertWebMergedSheet = function(rawText, rows, meta) {
+      let patientSwitched = false;
+      const incomingId = meta?.patientId || '';
+      const incomingName = meta?.patientName || '';
+
+      if (incomingId && state.mergePatient.id && incomingId !== state.mergePatient.id) {
+        state.mergedSheets = [];
+        patientSwitched = true;
+      }
+      if (incomingId) state.mergePatient.id = incomingId;
+      if (incomingName) state.mergePatient.name = incomingName;
+
+      const label = webShortLabel(meta?.serviceName, rows);
+      const resultTime = (meta?.resultTime || '').trim();
+      const sig = rows.slice(0, 3).map((r) => r.cleanName.toLowerCase()).join('|');
+      const key = [label.toLowerCase(), resultTime, sig].filter(Boolean).join('__');
+
+      const sheetObj = { key, label, serviceName: meta?.serviceName || label, resultTime, rawText, rows };
+
+      let existingIdx = state.mergedSheets.findIndex((s) => s.rawText === rawText);
+      if (existingIdx === -1) {
+        existingIdx = state.mergedSheets.findIndex((s) => {
+          if (s.label !== label) return false;
+          if (s.resultTime && resultTime && s.resultTime !== resultTime) return false;
+          return webRowOverlap(s.rows, rows) >= 0.5;
+        });
+      }
+
+      const isUpdated = existingIdx !== -1;
+      if (isUpdated) {
+        if (!sheetObj.resultTime && state.mergedSheets[existingIdx].resultTime) {
+          sheetObj.resultTime = state.mergedSheets[existingIdx].resultTime;
+        }
+        state.mergedSheets[existingIdx] = sheetObj;
+      } else {
+        state.mergedSheets.push(sheetObj);
+      }
+
+      sortWebMergedSheets();
+      saveWebMergeSession(true);
+      return { label, isUpdated, patientSwitched, count: state.mergedSheets.length };
+    };
+
+    window.CLS.clearWebMergeSession = function(notify = true) {
+      state.mergedSheets = [];
+      state.mergePatient = { id: '', name: '' };
+      state.lastAutoScannedText = '';
+      saveWebMergeSession(true);
+      updateSummary();
+      updateStats();
+      if (notify) showToast('Đã xóa danh sách gộp');
+    };
+
+    // Nạp phiên gộp đang lưu tại localStorage khi vừa mở trang
+    try {
+      const savedLocal = localStorage.getItem(WEB_MERGE_KEY);
+      if (savedLocal) applyWebMergePayload(JSON.parse(savedLocal));
+    } catch {}
+    updateSummary();
+    updateStats();
+
+    if (mergeToggleBtn) {
+      mergeToggleBtn.addEventListener('click', () => {
+        state.mergeEnabled = !state.mergeEnabled;
+        localStorage.setItem(WEB_MERGE_ON_KEY, state.mergeEnabled);
+        if (state.mergeEnabled && state.currentRows.length && el.dataTextarea.value.trim()) {
+          window.CLS.upsertWebMergedSheet(el.dataTextarea.value.trim(), state.currentRows, null);
+        }
+        pushSettingsToExtension();
+        updateSummary();
+        updateStats();
+        const plain = getSummaryPlainText();
+        if (state.mergeEnabled && plain) copyToClipboard(plain);
+        showToast(state.mergeEnabled ? 'Bật chế độ Gộp nhiều phiếu XN' : 'Tắt chế độ Gộp phiếu');
+      });
+    }
+
+    if (webClearMergeBtn) {
+      webClearMergeBtn.addEventListener('click', () => window.CLS.clearWebMergeSession(true));
+    }
+
+    webMergeFilterBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.mergeFilter = btn.dataset.filter;
+        localStorage.setItem(WEB_MERGE_FILTER_KEY, state.mergeFilter);
+        pushSettingsToExtension();
+        updateSummary();
+        updateStats();
+        const plain = getSummaryPlainText();
+        if (plain) copyToClipboard(plain).then(() => showToast('Đã cập nhật bộ lọc & sao chép'));
+      });
+    });
+
+    if (webMergeChips) {
+      webMergeChips.addEventListener('click', (e) => {
+        const del = e.target.closest('[data-del]');
+        if (del) {
+          const idx = parseInt(del.dataset.del, 10);
+          if (!isNaN(idx)) {
+            state.mergedSheets.splice(idx, 1);
+            if (!state.mergedSheets.length) state.mergePatient = { id: '', name: '' };
+            saveWebMergeSession(true);
+            updateSummary();
+            updateStats();
+            const plain = getSummaryPlainText();
+            if (plain) copyToClipboard(plain).then(() => showToast('Đã bỏ phiếu & sao chép lại'));
+          }
+          return;
+        }
+        const chip = e.target.closest('.web-merge-chip');
+        if (chip) {
+          const sheet = state.mergedSheets[parseInt(chip.dataset.idx, 10)];
+          if (sheet) el.dataTextarea.value = sheet.rawText;
+        }
+      });
+    }
+
+    // Nhận đồng bộ danh sách gộp từ Extension (khi gộp ngầm trên HIS hoặc sửa ở Popup/Thanh bên)
+    document.addEventListener('cls-merge-sync', (ev) => {
+      let saved = null;
+      try { saved = typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail; } catch {}
+      if (!saved) return;
+      applyWebMergePayload(saved);
+      try { localStorage.setItem(WEB_MERGE_KEY, JSON.stringify(saved)); } catch {}
+      updateSummary();
+      updateStats();
+    });
 
     /* Input */
     el.dataTextarea.addEventListener('focus', () => {
@@ -340,6 +675,9 @@ window.CLS = window.CLS || {};
       el.clearTextBtn.classList.add('hidden');
       state.currentRows = []; state.selectedIndices = [];
       state.lastSummaryHtml = ''; state.lastTableSignature = '';
+	  if (state.mergeEnabled && window.CLS.clearWebMergeSession) {
+        window.CLS.clearWebMergeSession(false);
+      }
       updateSummary(); updateStats(); renderTable();
       closeDrawer();
       showToast('Đã làm mới');
@@ -459,7 +797,7 @@ window.CLS = window.CLS || {};
             state.lastAutoScannedText = res.text.trim();
             el.dataTextarea.value = res.text;
             el.clearTextBtn.classList.remove('hidden');
-            window.CLS.performSummarize();
+            window.CLS.performSummarize(res.meta || null);
           } else {
             showToast(res.error || 'Không tìm thấy bảng kết quả xét nghiệm!', 4000);
           }
@@ -505,7 +843,7 @@ window.CLS = window.CLS || {};
             state.lastAutoScannedText = normalized;
             el.dataTextarea.value = normalized;
             el.clearTextBtn.classList.remove('hidden');
-            window.CLS.performSummarize();
+            window.CLS.performSummarize(res.meta || null);
           }
         }
       } catch {
@@ -561,7 +899,9 @@ window.CLS = window.CLS || {};
             showAbbr: state.showAbbr,
             copyFormat: state.copyFormat,
             themeMode: state.themeMode,
-            darkMode: isDark
+            darkMode: isDark,
+			mergeEnabled: Boolean(state.mergeEnabled),
+            mergeFilter: state.mergeFilter || 'main'
           })
         })
       );
@@ -594,11 +934,21 @@ window.CLS = window.CLS || {};
       if (s.themeMode && s.themeMode !== state.themeMode && window.CLS.setThemeMode) {
         window.CLS.setThemeMode(s.themeMode);
       }
-
+	  if (typeof s.mergeEnabled === 'boolean' && s.mergeEnabled !== state.mergeEnabled) {
+        state.mergeEnabled = s.mergeEnabled;
+        localStorage.setItem(WEB_MERGE_ON_KEY, state.mergeEnabled);
+        needSummary = true;
+      }
+      if (s.mergeFilter && s.mergeFilter !== state.mergeFilter) {
+        state.mergeFilter = s.mergeFilter;
+        localStorage.setItem(WEB_MERGE_FILTER_KEY, state.mergeFilter);
+        needSummary = true;
+      }
       updateUI();
-      if (state.currentRows.length) {
-        if (needTable) renderTable();
-        if (needSummary) updateSummary();
+      if (needTable && state.currentRows.length) renderTable();
+      if (needSummary) {
+        updateSummary();
+        updateStats();
       }
     });
 
@@ -606,6 +956,7 @@ window.CLS = window.CLS || {};
     setTimeout(() => {
       if (document.documentElement.dataset.clsExtReady === '1') {
         document.dispatchEvent(new CustomEvent('cls-settings-request'));
+        document.dispatchEvent(new CustomEvent('cls-merge-request'));
       }
     }, 500);
     /* Toggles */
@@ -1100,7 +1451,7 @@ window.CLS = window.CLS || {};
     }
 	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
-      const LATEST_EXT_VERSION = '1.4.0';
+      const LATEST_EXT_VERSION = '1.5.0';
 
       const extBanner = document.getElementById('extBanner');
       const extGuideBtn = document.getElementById('extGuideBtn');
