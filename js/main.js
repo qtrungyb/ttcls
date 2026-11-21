@@ -835,6 +835,7 @@ window.CLS = window.CLS || {};
       el.drawerBackdrop,
       el.settingsModal,
       el.itemModal,
+	  document.getElementById('extInstallModal'),
       el.contextMenu,
       el.scrollTopBtn
     ].filter(Boolean);
@@ -854,6 +855,126 @@ window.CLS = window.CLS || {};
       el.appBar.classList.toggle('scrolled', window.scrollY > 8);
       window.CLS.applyTheme();
       window.CLS.applyDensity();
+	  
+	  if (state.autoScanEnabled) startAutoScanLoop(false);
+    }
+
+    async function openPiP() {
+      if (!('documentPictureInPicture' in window)) {
+        return showToast('Trình duyệt không hỗ trợ Document PiP (cần Chrome/Edge 116+)', 4000);
+      }
+      try {
+        const pipWin = await window.documentPictureInPicture.requestWindow({
+          width: 430,
+          height: 660
+        });
+
+        // Copy toàn bộ CSS sang cửa sổ PiP
+        document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+          const cloned = pipWin.document.createElement('link');
+          cloned.rel = 'stylesheet';
+          cloned.href = link.href;
+          pipWin.document.head.appendChild(cloned);
+        });
+        document.querySelectorAll('style').forEach(style => {
+          const cloned = pipWin.document.createElement('style');
+          cloned.textContent = style.textContent;
+          pipWin.document.head.appendChild(cloned);
+        });
+
+        pipWin.document.title = 'Tóm tắt CLS';
+        pipWin.document.body.className = document.body.className;
+        pipWin.document.body.classList.add('pip-mode');
+
+        // Di chuyển toàn bộ UI sang cửa sổ PiP
+        pipNodes.forEach(node => pipWin.document.body.appendChild(node));
+        state.pipWindow = pipWin;
+
+        if (el.pipPlaceholder) el.pipPlaceholder.classList.remove('hidden');
+        if (el.pipToggleBtn) {
+          el.pipToggleBtn.classList.add('active');
+          el.pipToggleBtn.title = 'Đóng cửa sổ nổi (PiP)';
+          el.pipToggleBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
+        }
+
+        // Gắn lại sự kiện cho cửa sổ PiP
+        pipWin.document.addEventListener('click', (e) => {
+          el.formatDropdownMenu.classList.add('hidden');
+          if (!el.contextMenu.classList.contains('hidden') && !el.contextMenu.contains(e.target)) {
+            el.contextMenu.classList.add('hidden');
+          }
+        });
+        pipWin.document.addEventListener('keydown', handleGlobalKeydown);
+        pipWin.addEventListener('scroll', () => {
+          const y = pipWin.scrollY;
+          el.scrollTopBtn.classList.toggle('visible', y > 250);
+          el.appBar.classList.toggle('scrolled', y > 8);
+        }, { passive: true });
+
+        pipWin.addEventListener('pagehide', restoreFromPiP);
+
+        // Nếu mở PiP từ tab trung gian (?launchPip=1), tự quay lại đúng tab HIS phía sau
+        const params = new URLSearchParams(window.location.search);
+        const fromTabId = parseInt(params.get('fromTab'), 10);
+        if (fromTabId && typeof chrome !== 'undefined' && chrome.tabs) {
+          chrome.tabs.update(fromTabId, { active: true }).catch(() => {});
+        }
+
+        // ✅ ĐÃ CHUYỂN VÀO ĐÂY: chạy ngay khi mở PiP thành công
+        if (state.autoScanEnabled) startAutoScanLoop(true);
+        showToast('Đã mở cửa sổ nổi PiP');
+      } catch (err) {
+        console.error('PiP ERROR:', err);
+        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.runtime) {
+          const url = chrome.runtime.getURL('index.html?launchPip=1');
+          chrome.tabs.create({ url });
+          return;
+        }
+        showToast(`Không mở được PiP: ${err.message}`, 4000);
+      }
+    }
+
+    function togglePiP() {
+      if (state.pipWindow && !state.pipWindow.closed) {
+        state.pipWindow.close();
+      } else {
+        openPiP();
+      }
+    }
+
+    if (el.pipToggleBtn) el.pipToggleBtn.addEventListener('click', togglePiP);
+    if (el.pipRestoreBtn) {
+      el.pipRestoreBtn.addEventListener('click', () => {
+        if (state.pipWindow && !state.pipWindow.closed) state.pipWindow.close();
+      });
+    }
+    const pipFocusBtn = document.getElementById('pipFocusBtn');
+    if (pipFocusBtn) {
+      pipFocusBtn.addEventListener('click', () => {
+        if (state.pipWindow && !state.pipWindow.closed) state.pipWindow.focus();
+      });
+    }
+
+    // Hiện nút mở nhanh 1 chạm khi được chuyển từ Side Panel sang tab Extension
+    if (new URLSearchParams(window.location.search).get('launchPip') === '1') {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="pip-card" style="max-width:360px;">
+          <div class="pip-icon-wrap"><i class="fas fa-up-right-from-square"></i></div>
+          <h3 class="pip-title">Mở cửa sổ nổi Tóm tắt CLS</h3>
+          <p class="pip-desc">Bấm nút bên dưới để bật cửa sổ nổi (PiP) và tự động quay lại trang bệnh án.</p>
+          <button class="btn btn-primary" id="confirmLaunchPipBtn" style="width:100%;">
+            <i class="fas fa-external-link-alt"></i> Mở cửa sổ nổi ngay
+          </button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#confirmLaunchPipBtn').addEventListener('click', async () => {
+        overlay.remove();
+        await openPiP();
+      });
+    }
 	/* ---------- Gợi ý cài Extension khi máy chưa có ---------- */
     (function initExtensionPrompt() {
       const extBanner = document.getElementById('extBanner');
@@ -952,128 +1073,6 @@ window.CLS = window.CLS || {};
         }
       }, 700);
     })();
-	  if (state.autoScanEnabled) startAutoScanLoop(false);
-    }
-
-    async function openPiP() {
-      if (!('documentPictureInPicture' in window)) {
-        return showToast('Trình duyệt không hỗ trợ Document PiP (cần Chrome/Edge 116+)', 4000);
-      }
-      try {
-        const pipWin = await window.documentPictureInPicture.requestWindow({
-          width: 430,
-          height: 660
-        });
-
-        // Copy toàn bộ CSS sang cửa sổ PiP
-        document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-          const cloned = pipWin.document.createElement('link');
-          cloned.rel = 'stylesheet';
-          cloned.href = link.href;
-          pipWin.document.head.appendChild(cloned);
-        });
-        document.querySelectorAll('style').forEach(style => {
-          const cloned = pipWin.document.createElement('style');
-          cloned.textContent = style.textContent;
-          pipWin.document.head.appendChild(cloned);
-        });
-
-        pipWin.document.title = 'Tóm tắt CLS';
-        pipWin.document.body.className = document.body.className;
-        pipWin.document.body.classList.add('pip-mode');
-
-        // Di chuyển toàn bộ UI sang cửa sổ PiP
-        pipNodes.forEach(node => pipWin.document.body.appendChild(node));
-        state.pipWindow = pipWin;
-
-        if (el.pipPlaceholder) el.pipPlaceholder.classList.remove('hidden');
-        if (el.pipToggleBtn) {
-          el.pipToggleBtn.classList.add('active');
-          el.pipToggleBtn.title = 'Đóng cửa sổ nổi (PiP)';
-          el.pipToggleBtn.innerHTML = '<i class="fas fa-compress-alt"></i>';
-        }
-
-        // Gắn lại sự kiện cho cửa sổ PiP
-        pipWin.document.addEventListener('click', (e) => {
-          el.formatDropdownMenu.classList.add('hidden');
-          if (!el.contextMenu.classList.contains('hidden') && !el.contextMenu.contains(e.target)) {
-            el.contextMenu.classList.add('hidden');
-          }
-        });
-        pipWin.document.addEventListener('keydown', handleGlobalKeydown);
-        pipWin.addEventListener('scroll', () => {
-          const y = pipWin.scrollY;
-          el.scrollTopBtn.classList.toggle('visible', y > 250);
-          el.appBar.classList.toggle('scrolled', y > 8);
-        }, { passive: true });
-
-        pipWin.addEventListener('pagehide', restoreFromPiP);
-
-        // Nếu mở PiP từ tab trung gian (?launchPip=1), tự quay lại đúng tab HIS phía sau
-        const params = new URLSearchParams(window.location.search);
-        const fromTabId = parseInt(params.get('fromTab'), 10);
-        if (fromTabId && typeof chrome !== 'undefined' && chrome.tabs) {
-          chrome.tabs.update(fromTabId, { active: true }).catch(() => {});
-        }
-
-        showToast('Đã mở cửa sổ nổi PiP');
-      } catch (err) {
-        console.error('PiP ERROR:', err);
-        // Chrome chặn bật PiP trực tiếp trong Side Panel → tự mở tab Extension để bật PiP có quyền Quét
-        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.runtime) {
-          const targetTab = await findTargetTabForScan();
-          const url = chrome.runtime.getURL(
-            'index.html?launchPip=1' + (targetTab?.id ? `&fromTab=${targetTab.id}` : '')
-          );
-          chrome.tabs.create({ url });
-          return;
-        }
-		if (state.autoScanEnabled) startAutoScanLoop(true);
-        showToast(`Không mở được PiP: ${err.message}`, 4000);
-      }
-    }
-
-    function togglePiP() {
-      if (state.pipWindow && !state.pipWindow.closed) {
-        state.pipWindow.close();
-      } else {
-        openPiP();
-      }
-    }
-
-    if (el.pipToggleBtn) el.pipToggleBtn.addEventListener('click', togglePiP);
-    if (el.pipRestoreBtn) {
-      el.pipRestoreBtn.addEventListener('click', () => {
-        if (state.pipWindow && !state.pipWindow.closed) state.pipWindow.close();
-      });
-    }
-    const pipFocusBtn = document.getElementById('pipFocusBtn');
-    if (pipFocusBtn) {
-      pipFocusBtn.addEventListener('click', () => {
-        if (state.pipWindow && !state.pipWindow.closed) state.pipWindow.focus();
-      });
-    }
-
-    // Hiện nút mở nhanh 1 chạm khi được chuyển từ Side Panel sang tab Extension
-    if (new URLSearchParams(window.location.search).get('launchPip') === '1') {
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay';
-      overlay.innerHTML = `
-        <div class="pip-card" style="max-width:360px;">
-          <div class="pip-icon-wrap"><i class="fas fa-up-right-from-square"></i></div>
-          <h3 class="pip-title">Mở cửa sổ nổi Tóm tắt CLS</h3>
-          <p class="pip-desc">Bấm nút bên dưới để bật cửa sổ nổi (PiP) và tự động quay lại trang bệnh án.</p>
-          <button class="btn btn-primary" id="confirmLaunchPipBtn" style="width:100%;">
-            <i class="fas fa-external-link-alt"></i> Mở cửa sổ nổi ngay
-          </button>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-      overlay.querySelector('#confirmLaunchPipBtn').addEventListener('click', async () => {
-        overlay.remove();
-        await openPiP();
-      });
-    }
 	if (state.autoScanEnabled) startAutoScanLoop(false);
   };
 })();
