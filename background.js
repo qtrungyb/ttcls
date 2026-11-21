@@ -1,9 +1,17 @@
 /* =========================================================
    BACKGROUND — Side Panel + Quét dữ liệu bảng CLS từ HIS
    ========================================================= */
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => console.error(error));
+const CLS_WEB_URL = 'https://qtrungyb.github.io/ttcls/';
+
+chrome.action.onClicked.addListener(async () => {
+  const tabs = await chrome.tabs.query({ url: 'https://qtrungyb.github.io/*' });
+  if (tabs.length) {
+    await chrome.tabs.update(tabs[0].id, { active: true });
+    await chrome.windows.update(tabs[0].windowId, { focused: true });
+  } else {
+    await chrome.tabs.create({ url: CLS_WEB_URL });
+  }
+});
 
 function isScannableUrl(url) {
   if (typeof url !== 'string') return false;
