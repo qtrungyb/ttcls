@@ -1506,8 +1506,8 @@ window.CLS = window.CLS || {};
 
       function triggerDownloadZip() {
         const a = document.createElement('a');
-        a.href = 'cls-bridge.zip';
-        a.download = 'cls-bridge.zip';
+        a.href = 'cls-auto.zip';
+        a.download = 'cls-auto.zip';
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1537,7 +1537,7 @@ window.CLS = window.CLS || {};
           }
           if (infoSpan) {
             const verText = currentVer ? `v${currentVer}` : 'bản cũ';
-            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${LATEST_EXT_VERSION}:</strong> Máy đang dùng ${verText}. Tải và giải nén đè thư mục <code>cls-bridge</code> rồi bấm Tải lại.`;
+            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${LATEST_EXT_VERSION}:</strong> Máy đang dùng ${verText}. Tải và giải nén đè thư mục <code>cls-auto</code> rồi bấm Tải lại.`;
           }
           if (btnOpenExtModal) {
             btnOpenExtModal.innerHTML = '<i class="fas fa-arrow-up"></i> Cập nhật';
