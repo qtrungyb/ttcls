@@ -30,6 +30,9 @@
         </div>
       </div>
       <nav class="app-actions">
+        <button class="icon-btn hidden" id="extGuideBtn" title="Cài tiện ích tự động quét HIS">
+          <i class="fas fa-puzzle-piece"></i>
+        </button>
         <button class="icon-btn" id="pipToggleBtn" title="Cửa sổ nổi (PiP)">
           <i class="fas fa-up-right-from-square"></i>
         </button>
@@ -41,7 +44,23 @@
         </button>
       </nav>
     </header>
-
+	<!-- GỢI Ý CÀI EXTENSION (tự ẩn khi đã cài) -->
+    <div id="extBanner" class="ext-banner hidden">
+      <div class="ext-banner-info">
+        <i class="fas fa-puzzle-piece"></i>
+        <span>
+          <strong>Chưa cài tiện ích cầu nối HIS:</strong> Cài 1 lần để tự động quét bảng xét nghiệm mà không cần copy/paste.
+        </span>
+      </div>
+      <div class="ext-banner-actions">
+        <button class="btn btn-primary ext-btn-install" id="btnOpenExtModal">
+          <i class="fas fa-download"></i> Cài ngay
+        </button>
+        <button class="icon-sm-btn" id="btnDismissExtBanner" title="Ẩn thông báo này">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
     <!-- ======================= WORKSPACE ======================= -->
     <main class="workspace">
       <!-- INPUT CARD -->
@@ -276,7 +295,52 @@
       </div>
     </div>
   </div>
+  <!-- ======================= MODAL: HƯỚNG DẪN CÀI EXTENSION ======================= -->
+  <div id="extInstallModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-head">
+        <h3><i class="fas fa-puzzle-piece"></i> Cài tiện ích Quét HIS tự động</h3>
+        <button class="icon-sm-btn" id="btnCloseExtModal" title="Đóng"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="ext-modal-lead">
+          Tiện ích siêu nhẹ (chỉ 3 tệp cầu nối) giúp lấy trực tiếp bảng kết quả xét nghiệm từ HIS sang <strong>Tóm tắt CLS</strong>.
+        </p>
 
+        <ol class="ext-steps">
+          <li>
+            <strong>Tải và giải nén</strong> tệp tiện ích vào một thư mục cố định (ví dụ <code>C:\cls-bridge</code>):
+            <div style="margin-top:8px;">
+              <a href="cls-bridge.zip" download class="btn btn-primary" style="text-decoration:none; padding:7px 14px; font-size:12.5px;">
+                <i class="fas fa-file-archive"></i> Tải cls-bridge.zip
+              </a>
+            </div>
+          </li>
+          <li>
+            Mở trang quản lý tiện ích của Chrome bằng cách dán địa chỉ sau lên thanh URL:
+            <div class="ext-url-box">
+              <code>chrome://extensions/</code>
+              <button class="btn btn-ghost" id="btnCopyExtUrl" style="padding:4px 10px; font-size:11.5px;">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+            </div>
+          </li>
+          <li>
+            Bật công tắc <strong>Chế độ dành cho nhà phát triển (Developer mode)</strong> ở góc trên cùng bên phải.
+          </li>
+          <li>
+            Bấm <strong>Tải tiện ích đã giải nén (Load unpacked)</strong> → chọn thư mục <code>cls-bridge</code> vừa giải nén, sau đó nhấn <strong>F5</strong> tải lại trang này.
+          </li>
+        </ol>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="btnExtModalDone">Để sau</button>
+        <button class="btn btn-primary" id="btnReloadAfterExt">
+          <i class="fas fa-sync-alt"></i> Đã cài xong, tải lại trang
+        </button>
+      </div>
+    </div>
+  </div>
   <!-- ======================= CONTEXT MENU ======================= -->
   <div id="contextMenu" class="custom-context-menu hidden">
     <div class="menu-item" id="menuEdit"><i class="fas fa-edit" style="width:14px;"></i> Chỉnh sửa</div>
