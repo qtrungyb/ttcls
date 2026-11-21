@@ -854,6 +854,104 @@ window.CLS = window.CLS || {};
       el.appBar.classList.toggle('scrolled', window.scrollY > 8);
       window.CLS.applyTheme();
       window.CLS.applyDensity();
+	/* ---------- Gợi ý cài Extension khi máy chưa có ---------- */
+    (function initExtensionPrompt() {
+      const extBanner = document.getElementById('extBanner');
+      const extGuideBtn = document.getElementById('extGuideBtn');
+      const extModal = document.getElementById('extInstallModal');
+      const btnOpenExtModal = document.getElementById('btnOpenExtModal');
+      const btnDismissExtBanner = document.getElementById('btnDismissExtBanner');
+      const btnCloseExtModal = document.getElementById('btnCloseExtModal');
+      const btnExtModalDone = document.getElementById('btnExtModalDone');
+      const btnCopyExtUrl = document.getElementById('btnCopyExtUrl');
+      const btnReloadAfterExt = document.getElementById('btnReloadAfterExt');
+
+      if (!extBanner || !extModal) return;
+
+      const DISMISS_KEY = 'cls_ext_banner_dismissed_at';
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      function hasExtension() {
+        return Boolean(
+          document.documentElement.dataset.clsExtReady === '1' ||
+          (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id)
+        );
+      }
+
+      function hideAllPromptUI() {
+        extBanner.classList.add('hidden');
+        if (extGuideBtn) extGuideBtn.classList.add('hidden');
+      }
+
+      function openExtModal() {
+        extModal.classList.remove('hidden');
+      }
+
+      function closeExtModal() {
+        extModal.classList.add('hidden');
+      }
+
+      window.CLS.openExtInstallModal = openExtModal;
+
+      if (btnOpenExtModal) btnOpenExtModal.addEventListener('click', openExtModal);
+      if (extGuideBtn) extGuideBtn.addEventListener('click', openExtModal);
+      if (btnCloseExtModal) btnCloseExtModal.addEventListener('click', closeExtModal);
+      if (btnExtModalDone) btnExtModalDone.addEventListener('click', closeExtModal);
+      extModal.addEventListener('click', (e) => {
+        if (e.target === extModal) closeExtModal();
+      });
+
+      if (btnDismissExtBanner) {
+        btnDismissExtBanner.addEventListener('click', () => {
+          extBanner.classList.add('hidden');
+          localStorage.setItem(DISMISS_KEY, String(Date.now()));
+        });
+      }
+
+      if (btnCopyExtUrl) {
+        btnCopyExtUrl.addEventListener('click', () => {
+          copyToClipboard('chrome://extensions/').then(() => {
+            showToast('Đã copy chrome://extensions/ — hãy dán lên thanh địa chỉ!');
+          });
+        });
+      }
+
+      if (btnReloadAfterExt) {
+        btnReloadAfterExt.addEventListener('click', () => window.location.reload());
+      }
+
+      // Không gợi ý cài Extension trên điện thoại
+      if (isMobile) return;
+
+      // Theo dõi trường hợp bridge.js nạp chậm hơn một chút → tự ẩn ngay
+      const observer = new MutationObserver(() => {
+        if (hasExtension()) {
+          hideAllPromptUI();
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-cls-ext-ready']
+      });
+
+      // Chờ 700ms để bridge.js (run_at: document_idle) có đủ thời gian gắn cờ
+      setTimeout(() => {
+        if (hasExtension()) {
+          hideAllPromptUI();
+          observer.disconnect();
+          return;
+        }
+        if (extGuideBtn) extGuideBtn.classList.remove('hidden');
+
+        // Nếu người dùng đã bấm đóng banner, ẩn trong 7 ngày rồi mới nhắc lại
+        const dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (!dismissedAt || Date.now() - dismissedAt > sevenDays) {
+          extBanner.classList.remove('hidden');
+        }
+      }, 700);
+    })();
 	  if (state.autoScanEnabled) startAutoScanLoop(false);
     }
 
