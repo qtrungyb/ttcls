@@ -414,9 +414,6 @@ window.CLS = window.CLS || {};
             .filter(Boolean)
         : [];
       sortWebMergedSheets();
-      if (state.mergedSheets.length) {
-        state.lastAutoScannedText = state.mergedSheets[state.mergedSheets.length - 1].rawText;
-      }
     }
 
     function buildWebMergedResult() {
@@ -839,11 +836,14 @@ window.CLS = window.CLS || {};
 
         if (res.ok && !res.empty && res.text && res.text.trim()) {
           const normalized = res.text.trim();
-          if (normalized !== state.lastAutoScannedText) {
+          const alreadyMerged = state.mergeEnabled && state.mergedSheets.some((s) => s.rawText === normalized);
+          if (normalized !== state.lastAutoScannedText && !alreadyMerged) {
             state.lastAutoScannedText = normalized;
             el.dataTextarea.value = normalized;
             el.clearTextBtn.classList.remove('hidden');
             window.CLS.performSummarize(res.meta || null);
+          } else {
+            state.lastAutoScannedText = normalized;
           }
         }
       } catch {
