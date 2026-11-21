@@ -87,6 +87,9 @@
             <button class="chip-btn auto-scan-btn" id="autoScanToggleBtn" title="Tự động quét khi đổi xét nghiệm trên HIS">
               <span class="scan-dot"></span> Tự quét
             </button>
+            <button class="chip-btn" id="mergeToggleBtn" title="Gộp nhiều phiếu xét nghiệm của cùng 1 bệnh nhân">
+              <i class="fas fa-layer-group"></i> <span id="mergeBtnText">Gộp</span>
+            </button>
             <button class="chip-btn icon-only" id="autoToggleBtn" title="Tự động tóm tắt khi dán">
               <i class="fas fa-robot"></i>
             </button>
@@ -131,6 +134,20 @@
               <i class="fas fa-copy"></i> Copy
             </button>
           </div>
+        </div>
+		<div class="web-merge-bar hidden" id="webMergeBar">
+          <div class="web-merge-meta">
+            <span class="web-patient-badge" id="webPatientBadge">Chế độ gộp nhiều phiếu XN</span>
+            <div class="web-merge-right">
+              <div class="web-merge-filters" id="webMergeFilters">
+                <button class="web-mf-btn active" data-filter="main" title="Chỉ số chính">Chính</button>
+                <button class="web-mf-btn" data-filter="abnormal" title="Chỉ số bất thường">BT</button>
+                <button class="web-mf-btn" data-filter="all" title="Tất cả chỉ số">Tất cả</button>
+              </div>
+              <button class="web-clear-merge hidden" id="webClearMergeBtn" title="Xóa toàn bộ phiếu đang gộp">Xóa gộp</button>
+            </div>
+          </div>
+          <div class="web-merge-chips" id="webMergeChips"></div>
         </div>
         <div class="summary-body" id="summaryText">
           <div class="empty-state">
