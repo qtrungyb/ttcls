@@ -550,18 +550,78 @@ window.CLS = window.CLS || {};
         }
       });
     }
+	/* ---------- Đồng bộ cài đặt 2 chiều với Extension (chrome.storage.local) ---------- */
+    function pushSettingsToExtension() {
+      if (document.documentElement.dataset.clsExtReady !== '1') return;
+      const isDark = getActiveDoc().body.classList.contains('dark-mode');
+      document.dispatchEvent(
+        new CustomEvent('cls-settings-save', {
+          detail: JSON.stringify({
+            showUnit: state.showUnit,
+            showAbbr: state.showAbbr,
+            copyFormat: state.copyFormat,
+            themeMode: state.themeMode,
+            darkMode: isDark
+          })
+        })
+      );
+    }
+
+    document.addEventListener('cls-settings-sync', (ev) => {
+      let s = null;
+      try { s = typeof ev.detail === 'string' ? JSON.parse(ev.detail) : ev.detail; } catch {}
+      if (!s || typeof s !== 'object') return;
+
+      let needSummary = false;
+      let needTable = false;
+
+      if (typeof s.showUnit === 'boolean' && s.showUnit !== state.showUnit) {
+        state.showUnit = s.showUnit;
+        localStorage.setItem(STORAGE.SHOW_UNIT, state.showUnit);
+        needSummary = true;
+      }
+      if (typeof s.showAbbr === 'boolean' && s.showAbbr !== state.showAbbr) {
+        state.showAbbr = s.showAbbr;
+        localStorage.setItem(STORAGE.SHOW_ABBR, state.showAbbr);
+        needSummary = true;
+        needTable = true;
+      }
+      if (s.copyFormat && s.copyFormat !== state.copyFormat) {
+        state.copyFormat = s.copyFormat;
+        localStorage.setItem(STORAGE.COPY_FORMAT, state.copyFormat);
+        needSummary = true;
+      }
+      if (s.themeMode && s.themeMode !== state.themeMode && window.CLS.setThemeMode) {
+        window.CLS.setThemeMode(s.themeMode);
+      }
+
+      updateUI();
+      if (state.currentRows.length) {
+        if (needTable) renderTable();
+        if (needSummary) updateSummary();
+      }
+    });
+
+    // Chủ động yêu cầu Extension gửi cấu hình mới nhất khi web vừa khởi động
+    setTimeout(() => {
+      if (document.documentElement.dataset.clsExtReady === '1') {
+        document.dispatchEvent(new CustomEvent('cls-settings-request'));
+      }
+    }, 500);
     /* Toggles */
     el.toggleUnitBtn.addEventListener('click', () => {
       state.showUnit = !state.showUnit;
       localStorage.setItem(STORAGE.SHOW_UNIT, state.showUnit);
       updateUI();
       if (state.currentRows.length) updateSummary();
+      pushSettingsToExtension(); // 👈 Thêm (1)
     });
     el.toggleAbbrBtn.addEventListener('click', () => {
       state.showAbbr = !state.showAbbr;
       localStorage.setItem(STORAGE.SHOW_ABBR, state.showAbbr);
       updateUI();
       if (state.currentRows.length) { renderTable(); updateSummary(); }
+      pushSettingsToExtension(); // 👈 Thêm (2)
     });
     el.autoToggleBtn.addEventListener('click', () => {
       state.autoSummarizeEnabled = !state.autoSummarizeEnabled;
@@ -575,6 +635,7 @@ window.CLS = window.CLS || {};
       window.CLS.cycleThemeMode();
       const labels = { light: 'Sáng', dark: 'Tối', auto: 'Theo hệ thống' };
       showToast('Giao diện: ' + labels[state.themeMode]);
+      pushSettingsToExtension(); // 👈 Thêm (3)
     });
 
     /* Theme + Density segmented */
@@ -583,6 +644,7 @@ window.CLS = window.CLS || {};
         window.CLS.setThemeMode(b.dataset.theme);
         const labels = { light: 'Sáng', dark: 'Tối', auto: 'Theo hệ thống' };
         showToast('Giao diện: ' + labels[b.dataset.theme]);
+        pushSettingsToExtension(); // 👈 Thêm (4)
       });
     });
     document.querySelectorAll('#densitySegmented .seg-btn').forEach(b => {
@@ -605,6 +667,7 @@ window.CLS = window.CLS || {};
       el.formatDropdownMenu.classList.add('hidden');
       updateUI();
       if (state.currentRows.length) updateSummary();
+      pushSettingsToExtension(); // 👈 Thêm (5)
     }));
 
     /* Drawer */
@@ -1035,8 +1098,10 @@ window.CLS = window.CLS || {};
         await openPiP();
       });
     }
-	/* ---------- Gợi ý cài Extension khi máy chưa có ---------- */
+	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
+      const LATEST_EXT_VERSION = '1.4.0';
+
       const extBanner = document.getElementById('extBanner');
       const extGuideBtn = document.getElementById('extGuideBtn');
       const extModal = document.getElementById('extInstallModal');
@@ -1050,13 +1115,29 @@ window.CLS = window.CLS || {};
       if (!extBanner || !extModal) return;
 
       const DISMISS_KEY = 'cls_ext_banner_dismissed_at';
+      const UPDATE_DISMISS_KEY = 'cls_ext_update_dismissed_ver';
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      let bannerMode = 'install';
+
+      function compareVersions(a, b) {
+        const pa = String(a || '0').split('.').map((n) => parseInt(n, 10) || 0);
+        const pb = String(b || '0').split('.').map((n) => parseInt(n, 10) || 0);
+        for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+          const diff = (pa[i] || 0) - (pb[i] || 0);
+          if (diff !== 0) return diff;
+        }
+        return 0;
+      }
 
       function hasExtension() {
         return Boolean(
           document.documentElement.dataset.clsExtReady === '1' ||
           (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id)
         );
+      }
+
+      function getInstalledVersion() {
+        return document.documentElement.dataset.clsExtVersion || '';
       }
 
       function hideAllPromptUI() {
@@ -1072,9 +1153,61 @@ window.CLS = window.CLS || {};
         extModal.classList.add('hidden');
       }
 
+      function triggerDownloadZip() {
+        const a = document.createElement('a');
+        a.href = 'cls-bridge.zip';
+        a.download = 'cls-bridge.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      function evaluatePrompt() {
+        const installed = hasExtension();
+        const currentVer = getInstalledVersion();
+        const infoSpan = extBanner.querySelector('.ext-banner-info span');
+
+        if (!installed) {
+          bannerMode = 'install';
+          if (extGuideBtn) extGuideBtn.classList.remove('hidden');
+          const dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+          if (!dismissedAt || Date.now() - dismissedAt > 7 * 24 * 60 * 60 * 1000) {
+            extBanner.classList.remove('hidden');
+          }
+          return;
+        }
+
+        // Đã cài Extension -> kiểm tra có bản mới hơn trên GitHub hay không
+        if (compareVersions(currentVer || '0.0.0', LATEST_EXT_VERSION) < 0) {
+          bannerMode = 'update';
+          if (extGuideBtn) {
+            extGuideBtn.classList.remove('hidden');
+            extGuideBtn.title = `Có bản cập nhật Extension v${LATEST_EXT_VERSION}`;
+          }
+          if (infoSpan) {
+            const verText = currentVer ? `v${currentVer}` : 'bản cũ';
+            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${LATEST_EXT_VERSION}:</strong> Máy đang dùng ${verText}. Tải và giải nén đè thư mục <code>cls-bridge</code> rồi bấm Tải lại.`;
+          }
+          if (btnOpenExtModal) {
+            btnOpenExtModal.innerHTML = '<i class="fas fa-arrow-up"></i> Cập nhật';
+          }
+          if (localStorage.getItem(UPDATE_DISMISS_KEY) !== LATEST_EXT_VERSION) {
+            extBanner.classList.remove('hidden');
+          }
+          return;
+        }
+
+        hideAllPromptUI();
+      }
+
       window.CLS.openExtInstallModal = openExtModal;
 
-      if (btnOpenExtModal) btnOpenExtModal.addEventListener('click', openExtModal);
+      if (btnOpenExtModal) {
+        btnOpenExtModal.addEventListener('click', () => {
+          triggerDownloadZip();
+          openExtModal();
+        });
+      }
       if (extGuideBtn) extGuideBtn.addEventListener('click', openExtModal);
       if (btnCloseExtModal) btnCloseExtModal.addEventListener('click', closeExtModal);
       if (btnExtModalDone) btnExtModalDone.addEventListener('click', closeExtModal);
@@ -1085,7 +1218,11 @@ window.CLS = window.CLS || {};
       if (btnDismissExtBanner) {
         btnDismissExtBanner.addEventListener('click', () => {
           extBanner.classList.add('hidden');
-          localStorage.setItem(DISMISS_KEY, String(Date.now()));
+          if (bannerMode === 'update') {
+            localStorage.setItem(UPDATE_DISMISS_KEY, LATEST_EXT_VERSION);
+          } else {
+            localStorage.setItem(DISMISS_KEY, String(Date.now()));
+          }
         });
       }
 
@@ -1101,41 +1238,16 @@ window.CLS = window.CLS || {};
         btnReloadAfterExt.addEventListener('click', () => window.location.reload());
       }
 
-      // Không gợi ý cài Extension trên điện thoại
       if (isMobile) return;
 
-      // Theo dõi trường hợp bridge.js nạp chậm hơn một chút → tự ẩn ngay
-      const observer = new MutationObserver(() => {
-        if (hasExtension()) {
-          hideAllPromptUI();
-          observer.disconnect();
-        }
-      });
+      const observer = new MutationObserver(() => evaluatePrompt());
       observer.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['data-cls-ext-ready']
+        attributeFilter: ['data-cls-ext-ready', 'data-cls-ext-version']
       });
 
-      // Chờ 700ms để bridge.js (run_at: document_idle) có đủ thời gian gắn cờ
-      setTimeout(() => {
-        if (hasExtension()) {
-          hideAllPromptUI();
-          observer.disconnect();
-          return;
-        }
-        if (extGuideBtn) extGuideBtn.classList.remove('hidden');
-
-        // Nếu người dùng đã bấm đóng banner, ẩn trong 7 ngày rồi mới nhắc lại
-        const dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
-        const sevenDays = 7 * 24 * 60 * 60 * 1000;
-        if (!dismissedAt || Date.now() - dismissedAt > sevenDays) {
-          extBanner.classList.remove('hidden');
-        }
-      }, 700);
+      setTimeout(evaluatePrompt, 700);
     })();
-	if (state.autoScanEnabled) startAutoScanLoop(false);
-  };
-})();
 
 /* ---------- Bootstrap ---------- */
 (function bootstrap() {
