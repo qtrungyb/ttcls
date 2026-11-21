@@ -33,6 +33,22 @@
         <button class="icon-btn hidden" id="extGuideBtn" title="Cài tiện ích tự động quét dữ liệu cận lâm sàng">
           <i class="fas fa-puzzle-piece"></i>
         </button>
+        <div class="pip-opacity-wrap">
+          <button class="icon-btn" id="pipOpacityBtn" title="Chỉnh độ mờ / rõ (PiP)">
+            <i class="fas fa-eye"></i>
+          </button>
+          <div class="pip-opacity-menu hidden" id="pipOpacityMenu">
+            <div class="pip-opacity-head">
+              <span>Độ rõ</span>
+              <b id="pipOpacityVal">100%</b>
+            </div>
+            <input type="range" id="pipOpacitySlider" min="25" max="100" step="5" value="100">
+            <label class="pip-hover-opt">
+              <input type="checkbox" id="pipHoverClear" checked>
+              <span>Tự rõ khi rê chuột</span>
+            </label>
+          </div>
+        </div>
         <button class="icon-btn" id="pipToggleBtn" title="Cửa sổ nổi (PiP)">
           <i class="fas fa-up-right-from-square"></i>
         </button>
