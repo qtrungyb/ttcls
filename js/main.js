@@ -299,6 +299,10 @@ window.CLS = window.CLS || {};
     win.requestAnimationFrame(() => {
       win.requestAnimationFrame(() => el.outputCard.classList.add('animate-pulse'));
     });
+	// Tự cuộn lên đầu cửa sổ PiP để hiện ngay khối Kết quả mới nhất
+    if (state.pipWindow && !state.pipWindow.closed) {
+      state.pipWindow.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   window.CLS.bindEvents = function() {
@@ -859,6 +863,59 @@ window.CLS = window.CLS || {};
 	  if (state.autoScanEnabled) startAutoScanLoop(false);
     }
 
+	/* ---------- Chỉnh độ mờ / rõ cho PiP ---------- */
+    const PIP_OPACITY_KEY = 'cls_pip_opacity';
+    const PIP_HOVER_CLEAR_KEY = 'cls_pip_hover_clear';
+    const pipOpacityBtn = document.getElementById('pipOpacityBtn');
+    const pipOpacityMenu = document.getElementById('pipOpacityMenu');
+    const pipOpacitySlider = document.getElementById('pipOpacitySlider');
+    const pipOpacityVal = document.getElementById('pipOpacityVal');
+    const pipHoverClear = document.getElementById('pipHoverClear');
+
+    function applyPipOpacity() {
+      const pct = Math.min(100, Math.max(25, parseInt(localStorage.getItem(PIP_OPACITY_KEY) || '100', 10)));
+      const hoverClear = localStorage.getItem(PIP_HOVER_CLEAR_KEY) !== 'false';
+
+      if (pipOpacitySlider) pipOpacitySlider.value = String(pct);
+      if (pipOpacityVal) pipOpacityVal.textContent = pct + '%';
+      if (pipHoverClear) pipHoverClear.checked = hoverClear;
+      if (pipOpacityBtn) pipOpacityBtn.classList.toggle('active', pct < 100);
+
+      if (state.pipWindow && !state.pipWindow.closed) {
+        const body = state.pipWindow.document.body;
+        body.style.setProperty('--pip-opacity', String(pct / 100));
+        body.classList.toggle('pip-hover-clear', hoverClear);
+      }
+    }
+
+    if (pipOpacityBtn && pipOpacityMenu) {
+      pipOpacityBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pipOpacityMenu.classList.toggle('hidden');
+      });
+    }
+    if (pipOpacitySlider) {
+      const endAdjust = () => {
+        if (state.pipWindow && !state.pipWindow.closed) {
+          state.pipWindow.document.body.classList.remove('pip-adjusting');
+        }
+      };
+      pipOpacitySlider.addEventListener('input', () => {
+        if (state.pipWindow && !state.pipWindow.closed) {
+          state.pipWindow.document.body.classList.add('pip-adjusting');
+        }
+        localStorage.setItem(PIP_OPACITY_KEY, pipOpacitySlider.value);
+        applyPipOpacity();
+      });
+      pipOpacitySlider.addEventListener('change', endAdjust);
+      pipOpacitySlider.addEventListener('pointerup', endAdjust);
+    }
+    if (pipHoverClear) {
+      pipHoverClear.addEventListener('change', () => {
+        localStorage.setItem(PIP_HOVER_CLEAR_KEY, pipHoverClear.checked ? 'true' : 'false');
+        applyPipOpacity();
+      });
+    }
     async function openPiP() {
       if (!('documentPictureInPicture' in window)) {
         return showToast('Trình duyệt không hỗ trợ Document PiP (cần Chrome/Edge 116+)', 4000);
@@ -885,7 +942,7 @@ window.CLS = window.CLS || {};
         pipWin.document.title = 'Tóm tắt CLS';
         pipWin.document.body.className = document.body.className;
         pipWin.document.body.classList.add('pip-mode');
-
+        applyPipOpacity();
         // Di chuyển toàn bộ UI sang cửa sổ PiP
         pipNodes.forEach(node => pipWin.document.body.appendChild(node));
         state.pipWindow = pipWin;
@@ -902,6 +959,9 @@ window.CLS = window.CLS || {};
           el.formatDropdownMenu.classList.add('hidden');
           if (!el.contextMenu.classList.contains('hidden') && !el.contextMenu.contains(e.target)) {
             el.contextMenu.classList.add('hidden');
+          }
+          if (pipOpacityMenu && !pipOpacityMenu.classList.contains('hidden') && !(e.target.closest && e.target.closest('.pip-opacity-wrap'))) {
+            pipOpacityMenu.classList.add('hidden');
           }
         });
         pipWin.document.addEventListener('keydown', handleGlobalKeydown);
