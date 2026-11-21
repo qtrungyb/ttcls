@@ -1005,11 +1005,11 @@ window.CLS = window.CLS || {};
         pipWin.document.title = 'Tóm tắt CLS';
         pipWin.document.body.className = document.body.className;
         pipWin.document.body.classList.add('pip-mode');
-        applyPipOpacity();
         // Di chuyển toàn bộ UI sang cửa sổ PiP
         pipNodes.forEach(node => pipWin.document.body.appendChild(node));
         state.pipWindow = pipWin;
-
+		applyPipOpacity();
+		
         if (el.pipPlaceholder) el.pipPlaceholder.classList.remove('hidden');
         if (el.pipToggleBtn) {
           el.pipToggleBtn.classList.add('active');
@@ -1248,6 +1248,10 @@ window.CLS = window.CLS || {};
 
       setTimeout(evaluatePrompt, 700);
     })();
+
+    if (state.autoScanEnabled) startAutoScanLoop(false);
+  };
+})();
 
 /* ---------- Bootstrap ---------- */
 (function bootstrap() {
