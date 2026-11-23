@@ -1,1 +1,59 @@
-
+{
+  "manifest_version": 3,
+  "name": "Tóm tắt CLS",
+  "version": "1.9.1",
+  "description": "Quét, gộp tự động bảng xét nghiệm, CDHA, phím tắt Alt+Q.",
+  "icons": {
+    "128": "icon.png"
+  },
+  "permissions": [
+    "sidePanel",
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://qtrungyb.github.io/*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "exclude_matches": [
+        "https://qtrungyb.github.io/*"
+      ],
+      "js": ["his_watcher.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_title": "Tóm tắt CLS",
+    "default_icon": "icon.png",
+    "default_popup": "popup.html"
+  },
+  "side_panel": {
+    "default_path": "popup.html?mode=sidepanel"
+  },
+  "commands": {
+    "quick-scan-copy": {
+      "suggested_key": {
+        "default": "Alt+Q",
+        "mac": "Alt+Q"
+      },
+      "description": "Quét nhanh bảng xét nghiệm, CĐHA và copy kết quả tóm tắt"
+    }
+  }
+}
