@@ -304,6 +304,30 @@ window.CLS = window.CLS || {};
       }
       return;
     }
+	if (!el.tableContainer.classList.contains('open')) {
+      state.isTableDirty = true;
+    } else {
+      renderTable();
+      state.isTableDirty = false;
+    }
+    updateSummary();
+    updateStats();
+
+    const sel = state.currentRows.filter((_, i) => state.selectedIndices.includes(i));
+    const { plain } = computeSummary(sel);
+    pushHistory(el.dataTextarea.value, plain, state.currentRows.length);
+
+    if (plain) copyToClipboard(plain);
+    showToast('Đã tóm tắt & sao chép');
+
+    el.outputCard.classList.remove('animate-pulse');
+    win.requestAnimationFrame(() => {
+      win.requestAnimationFrame(() => el.outputCard.classList.add('animate-pulse'));
+    });
+
+    if (state.pipWindow && !state.pipWindow.closed) {
+      state.pipWindow.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   window.CLS.bindEvents = function() {
@@ -579,10 +603,18 @@ window.CLS = window.CLS || {};
       const sheetObj = { key, label, serviceName: meta?.serviceName || label, resultTime, rawText, rows };
 
       let existingIdx = state.mergedSheets.findIndex((s) => s.rawText === rawText);
+      const isGenericImgName = (n) => /^(cđha|tdcn|siêu âm|chụp x-quang|x-quang|điện tim|nội soi)$/i.test(String(n || '').trim());
+
       if (existingIdx === -1) {
         existingIdx = state.mergedSheets.findIndex((s) => {
           if (s.label !== label) return false;
           if (s.resultTime && resultTime && s.resultTime !== resultTime) return false;
+          if (label === 'CĐHA' || label === 'TDCN') {
+            const oldName = s.rows[0]?.cleanName || '';
+            const newName = rows[0]?.cleanName || '';
+            if (!oldName || !newName || isGenericImgName(newName)) return false;
+            return oldName.toLowerCase() === newName.toLowerCase();
+          }
           return webRowOverlap(s.rows, rows) >= 0.5;
         });
       }
