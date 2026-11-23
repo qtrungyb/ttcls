@@ -322,7 +322,10 @@ window.CLS = window.CLS || {};
     const WEB_MERGE_KEY = 'cls_web_merge_session_v1';
     const WEB_MERGE_ON_KEY = 'cls_web_merge_enabled';
     const WEB_MERGE_FILTER_KEY = 'cls_web_merge_filter';
-    const WEB_MERGE_PRIORITY = { CTM: 1, SHM: 2, ĐGĐ: 3, MD: 4, TPTNT: 5, ĐM: 6, KM: 7, VS: 8, XN: 9 };
+    const WEB_MERGE_PRIORITY = {
+      CTM: 1, SHM: 2, ĐGĐ: 3, XN: 4, MD: 5, ĐM: 6, KM: 7, VS: 8, TPTNT: 9,
+      CĐHA: 10, TDCN: 11
+    };
 
     const mergeToggleBtn = document.getElementById('mergeToggleBtn');
     const mergeBtnText = document.getElementById('mergeBtnText');
@@ -354,6 +357,9 @@ window.CLS = window.CLS || {};
     }
 
     function webShortLabel(serviceName, rows) {
+      if ((rows || []).length > 0 && rows.every((r) => r.refRange === 'CĐHA' || r.refRange === 'TDCN')) {
+        return rows[0].refRange;
+      }
       const names = (rows || []).map((r) => r.cleanName.toLowerCase()).join(' | ');
       const svc = String(serviceName || '').toLowerCase();
       if (svc.includes('nước tiểu') || svc.includes('tptnt') || names.includes('tỷ trọng') || names.includes('urobilinogen') || names.includes('nitrit') || names.includes('cetonic') || names.includes('keton')) return 'TPTNT';
@@ -415,7 +421,26 @@ window.CLS = window.CLS || {};
         : [];
       sortWebMergedSheets();
     }
+    if (typeof window.CLS.computeSummary === 'function' && !window.CLS.computeSummary.__cdhaWrapped) {
+      const origComputeSummary = window.CLS.computeSummary;
+      window.CLS.computeSummary = function(rows) {
+        const isAllConclusion = rows.length > 0 && rows.every((r) => r.refRange === 'CĐHA' || r.refRange === 'TDCN');
+        if (!isAllConclusion) return origComputeSummary(rows);
 
+        const htmlParts = [];
+        const plainParts = [];
+        for (const r of rows) {
+          if (!r.value) continue;
+          const out = origComputeSummary([{ ...r, value: '__CLS_COLON__' + r.value, unit: '' }]);
+          htmlParts.push(out.html.replace(/\s+__CLS_COLON__/g, ': '));
+          plainParts.push(out.plain.replace(/\s+__CLS_COLON__/g, ': '));
+        }
+        const joinHtml = state.copyFormat === 'newline' ? '<br>' : '; ';
+        const joinPlain = state.copyFormat === 'newline' ? '\n' : '; ';
+        return { html: htmlParts.join(joinHtml), plain: plainParts.join(joinPlain) };
+      };
+      window.CLS.computeSummary.__cdhaWrapped = true;
+    }
     function buildWebMergedResult() {
       const total = state.mergedSheets.reduce((sum, s) => sum + s.rows.length, 0);
       const abn = state.mergedSheets.reduce((sum, s) => sum + s.rows.filter((r) => r._status === 'abnormal').length, 0);
@@ -445,6 +470,19 @@ window.CLS = window.CLS || {};
       const htmlBlocks = [];
       const plainBlocks = [];
       for (const g of groups) {
+        if (g.label === 'CĐHA' || g.label === 'TDCN') {
+          for (const r of g.rows) {
+            const { html, plain } = window.CLS.computeSummary([r]);
+            if (!plain) continue;
+            const colonPos = html.indexOf(': ');
+            const formattedHtml = colonPos !== -1
+              ? `<span class="grp-label">- ${html.slice(0, colonPos + 1)}</span>${html.slice(colonPos + 1)}`
+              : `<span class="grp-label">-</span> ${html}`;
+            htmlBlocks.push(formattedHtml);
+            plainBlocks.push(`- ${plain}`);
+          }
+          continue;
+        }
         const { html, plain } = window.CLS.computeSummary(g.rows);
         if (!plain) continue;
         if (state.copyFormat === 'newline') {
@@ -486,7 +524,10 @@ window.CLS = window.CLS || {};
         } else {
           webMergeChips.innerHTML = state.mergedSheets.map((s, idx) => {
             const tip = [s.serviceName || s.label, s.resultTime].filter(Boolean).join(' — ');
-            return `<span class="web-merge-chip" data-idx="${idx}" title="${escAttr(tip)}"><span>${escHtml(s.label)}</span><span class="web-merge-chip-count">(${s.rows.length})</span><button class="web-merge-chip-del" data-del="${idx}" title="Bỏ phiếu này">&times;</button></span>`;
+            const isImg = s.label === 'CĐHA' || s.label === 'TDCN';
+            const chipLabel = isImg && s.rows[0]?.cleanName ? s.rows[0].cleanName.slice(0, 22) : s.label;
+            const chipCount = isImg ? '' : `<span class="web-merge-chip-count">(${s.rows.length})</span>`;
+            return `<span class="web-merge-chip" data-idx="${idx}" title="${escAttr(tip)}"><span>${escHtml(chipLabel)}</span>${chipCount}<button class="web-merge-chip-del" data-del="${idx}" title="Bỏ phiếu này">&times;</button></span>`;
           }).join('');
         }
       }
