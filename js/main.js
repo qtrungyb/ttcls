@@ -1524,7 +1524,8 @@ window.CLS = window.CLS || {};
     }
 	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
-      const LATEST_EXT_VERSION = '1.5.0';
+      let latestVersion = '1.5.1'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
+      const EXT_ZIP_FILE = 'cls-auto.zip';
 
       const extBanner = document.getElementById('extBanner');
       const extGuideBtn = document.getElementById('extGuideBtn');
@@ -1569,7 +1570,16 @@ window.CLS = window.CLS || {};
         if (extGuideBtn) extGuideBtn.classList.add('hidden');
       }
 
+      function syncModalZipLinks() {
+        const freshHref = `${EXT_ZIP_FILE}?v=${encodeURIComponent(latestVersion)}`;
+        extModal.querySelectorAll('a[href$=".zip"], a[href*=".zip?"]').forEach((link) => {
+          link.href = freshHref;
+          link.setAttribute('download', EXT_ZIP_FILE);
+        });
+      }
+
       function openExtModal() {
+        syncModalZipLinks();
         extModal.classList.remove('hidden');
       }
 
@@ -1579,8 +1589,8 @@ window.CLS = window.CLS || {};
 
       function triggerDownloadZip() {
         const a = document.createElement('a');
-        a.href = 'cls-auto.zip';
-        a.download = 'cls-auto.zip';
+        a.href = `${EXT_ZIP_FILE}?v=${encodeURIComponent(latestVersion)}&t=${Date.now()}`;
+        a.download = EXT_ZIP_FILE;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1601,27 +1611,41 @@ window.CLS = window.CLS || {};
           return;
         }
 
-        // Đã cài Extension -> kiểm tra có bản mới hơn trên GitHub hay không
-        if (compareVersions(currentVer || '0.0.0', LATEST_EXT_VERSION) < 0) {
+        // Đã cài Extension -> so sánh phiên bản trên máy với bản mới nhất trên GitHub
+        if (compareVersions(currentVer || '0.0.0', latestVersion) < 0) {
           bannerMode = 'update';
           if (extGuideBtn) {
             extGuideBtn.classList.remove('hidden');
-            extGuideBtn.title = `Có bản cập nhật Extension v${LATEST_EXT_VERSION}`;
+            extGuideBtn.title = `Có bản cập nhật Extension v${latestVersion}`;
           }
           if (infoSpan) {
             const verText = currentVer ? `v${currentVer}` : 'bản cũ';
-            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${LATEST_EXT_VERSION}:</strong> Máy đang dùng ${verText}. Tải và giải nén đè thư mục <code>cls-auto</code> rồi bấm Tải lại.`;
+            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${latestVersion}:</strong> Máy đang dùng ${verText}. Tải <code>${EXT_ZIP_FILE}</code>, giải nén đè thư mục <code>cls-auto</code> rồi bấm Tải lại.`;
           }
           if (btnOpenExtModal) {
             btnOpenExtModal.innerHTML = '<i class="fas fa-arrow-up"></i> Cập nhật';
           }
-          if (localStorage.getItem(UPDATE_DISMISS_KEY) !== LATEST_EXT_VERSION) {
+          if (localStorage.getItem(UPDATE_DISMISS_KEY) !== latestVersion) {
             extBanner.classList.remove('hidden');
           }
           return;
         }
 
         hideAllPromptUI();
+      }
+
+      // Đọc trực tiếp version từ cls-auto/manifest.json trên GitHub (chống cache)
+      async function fetchLatestManifestVersion() {
+        try {
+          const res = await fetch(`cls-auto/manifest.json?t=${Date.now()}`, { cache: 'no-store' });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data?.version && compareVersions(data.version, latestVersion) > 0) {
+            latestVersion = String(data.version).trim();
+            syncModalZipLinks();
+            evaluatePrompt();
+          }
+        } catch {}
       }
 
       window.CLS.openExtInstallModal = openExtModal;
@@ -1643,7 +1667,7 @@ window.CLS = window.CLS || {};
         btnDismissExtBanner.addEventListener('click', () => {
           extBanner.classList.add('hidden');
           if (bannerMode === 'update') {
-            localStorage.setItem(UPDATE_DISMISS_KEY, LATEST_EXT_VERSION);
+            localStorage.setItem(UPDATE_DISMISS_KEY, latestVersion);
           } else {
             localStorage.setItem(DISMISS_KEY, String(Date.now()));
           }
@@ -1670,6 +1694,7 @@ window.CLS = window.CLS || {};
         attributeFilter: ['data-cls-ext-ready', 'data-cls-ext-version']
       });
 
+      fetchLatestManifestVersion();
       setTimeout(evaluatePrompt, 700);
     })();
 
