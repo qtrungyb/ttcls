@@ -289,7 +289,7 @@ window.CLS = window.CLS || {};
       if (mergedPlain) copyToClipboard(mergedPlain);
 
       const toastMsg = info.patientSwitched
-        ? `Đổi BN ${state.mergePatient?.name || state.mergePatient?.id} — gộp mới (${info.label})`
+        ? `Đổi BN ${state.mergePatient?.name || state.mergePatient?.id || 'mới'} — gộp mới (${info.label})`
         : (info.isUpdated
           ? `Đã cập nhật ${info.label} (${info.count} phiếu) & copy`
           : `Đã gộp +${info.label} (${info.count} phiếu) & copy`);
@@ -365,7 +365,7 @@ window.CLS = window.CLS || {};
 
     state.mergeEnabled = localStorage.getItem(WEB_MERGE_ON_KEY) === 'true';
     state.mergeFilter = localStorage.getItem(WEB_MERGE_FILTER_KEY) || 'main';
-    state.mergePatient = { id: '', name: '' };
+    state.mergePatient = { id: '', name: '', contextKey: '' };
     state.mergedSheets = [];
 
     const escHtml = (s) => s ? String(s).replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) : '';
@@ -426,7 +426,11 @@ window.CLS = window.CLS || {};
 
     function applyWebMergePayload(saved) {
       if (!saved || typeof saved !== 'object') return;
-      state.mergePatient = { id: saved.patient?.id || '', name: saved.patient?.name || '' };
+      state.mergePatient = {
+        id: saved.patient?.id || '',
+        name: saved.patient?.name || '',
+        contextKey: saved.patient?.contextKey || (saved.patient?.id ? 'pid:' + saved.patient.id : '')
+      };
       state.mergedSheets = Array.isArray(saved.sheets)
         ? saved.sheets
             .map((s) => {
@@ -587,13 +591,17 @@ window.CLS = window.CLS || {};
       let patientSwitched = false;
       const incomingId = meta?.patientId || '';
       const incomingName = meta?.patientName || '';
+      const incomingKey = incomingId ? 'pid:' + incomingId : (meta?.contextKey || '');
+      const currentKey = state.mergePatient.contextKey || (state.mergePatient.id ? 'pid:' + state.mergePatient.id : '');
 
-      if (incomingId && state.mergePatient.id && incomingId !== state.mergePatient.id) {
+      if (incomingKey && currentKey && incomingKey !== currentKey) {
         state.mergedSheets = [];
+        state.mergePatient = { id: '', name: '', contextKey: '' };
         patientSwitched = true;
       }
       if (incomingId) state.mergePatient.id = incomingId;
       if (incomingName) state.mergePatient.name = incomingName;
+      if (incomingKey) state.mergePatient.contextKey = incomingKey;
 
       const label = webShortLabel(meta?.serviceName, rows);
       const resultTime = (meta?.resultTime || '').trim();
@@ -636,7 +644,7 @@ window.CLS = window.CLS || {};
 
     window.CLS.clearWebMergeSession = function(notify = true) {
       state.mergedSheets = [];
-      state.mergePatient = { id: '', name: '' };
+      state.mergePatient = { id: '', name: '', contextKey: '' };
       state.lastAutoScannedText = '';
       saveWebMergeSession(true);
       updateSummary();
@@ -691,7 +699,7 @@ window.CLS = window.CLS || {};
           const idx = parseInt(del.dataset.del, 10);
           if (!isNaN(idx)) {
             state.mergedSheets.splice(idx, 1);
-            if (!state.mergedSheets.length) state.mergePatient = { id: '', name: '' };
+            if (!state.mergedSheets.length) state.mergePatient = { id: '', name: '', contextKey: '' };
             saveWebMergeSession(true);
             updateSummary();
             updateStats();
@@ -1524,7 +1532,7 @@ window.CLS = window.CLS || {};
     }
 	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
-      let latestVersion = '1.5.1'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
+      let latestVersion = '1.9.3'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
       const EXT_ZIP_FILE = 'cls-auto.zip';
 
       const extBanner = document.getElementById('extBanner');
@@ -1620,10 +1628,10 @@ window.CLS = window.CLS || {};
           }
           if (infoSpan) {
             const verText = currentVer ? `v${currentVer}` : 'bản cũ';
-            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${latestVersion}:</strong> Máy đang dùng ${verText}. Tải <code>${EXT_ZIP_FILE}</code>, giải nén đè thư mục <code>cls-auto</code> rồi bấm Tải lại.`;
+            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${latestVersion}:</strong> Máy đang dùng ${verText}. Nháy đúp <code>CapNhat_CLS.bat</code> trong thư mục <code>cls-auto</code> rồi bấm Tải lại (hoặc tải <code>.zip</code> nếu chưa có file này).`;
           }
           if (btnOpenExtModal) {
-            btnOpenExtModal.innerHTML = '<i class="fas fa-arrow-up"></i> Cập nhật';
+            btnOpenExtModal.innerHTML = '<i class="fas fa-arrow-up"></i> Tải .zip';
           }
           if (localStorage.getItem(UPDATE_DISMISS_KEY) !== latestVersion) {
             extBanner.classList.remove('hidden');
