@@ -355,8 +355,11 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
     const lines = String(input || '').split(/\r?\n/);
     const rows = [];
     let autoStt = 1;
-    const HEADER_RE = /^(stt|tt|#|chỉ số|tên xét nghiệm|tên xn|thông số|kết quả|tham chiếu|đơn vị)$/i;
-    const QUAL_RE = /^(?:[+-]+|âm(?:\s*tính)?|dương(?:\s*tính)?|neg(?:ative)?|pos(?:itive)?|norm(?:al)?|bình\s*thường|bt|vết|trace|không|có)\b/i;
+    const HEADER_RE = /^(stt|tt|#|chỉ số|tên xét nghiệm|tên xn|thông số|kết quả|tham chiếu|đơn vị|danh sách chỉ số|sid|kết luận|mô tả|loại dịch vụ|loại xét nghiệm|thời gian trả kết quả|thời gian thực hiện|người chỉ định|người thực hiện|nơi thực hiện)$/i;
+	const DATE_TIME_RE = /\b\d{1,2}:\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/;
+	const META_VAL_RE = /^(?:sid|id|mã|code|số\s*phiếu|phòng|khoa)\s*[:#-]?\s*/i;
+	const NUM_VAL_RE = /^(?:[<>≤≥~±+-]\s*)?\d+(?:[.,]\d+)?(?:\s*(?:%|mmol\/l|mg\/dl|g\/l|g\/dl|u\/l|iu\/l|ui\/l|t\/l|fl|pg|mm|s|[hl↑↓]|\([^)]{1,18}\)))?$/i;
+	const QUAL_RE = /^(?:[+-]{1,4}|\(\s*[+-]+\s*\)|\d+\+|(?:-\s*)?(?:âm(?:\s*tính)?|dương(?:\s*tính)?|neg(?:ative)?|pos(?:itive)?|norm(?:al)?|bình\s*thường|bt|vết|trace|không|có))(?:\s*(?:\([^)]{1,24}\)|[+-]+))?$/i;
 
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -374,7 +377,7 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
         rest = cells.slice(1);
       } else {
         const okName = /[a-zA-ZÀ-ỹ]/.test(cells[0]) && !HEADER_RE.test(cells[0]);
-        const okVal = /\d/.test(cells[1]) || QUAL_RE.test(cells[1]) || cells[2] === 'CĐHA' || cells[2] === 'TDCN';
+        const okVal = (cells[2] === 'CĐHA' || cells[2] === 'TDCN') || (!DATE_TIME_RE.test(cells[1]) && !META_VAL_RE.test(cells[1]) && (NUM_VAL_RE.test(cells[1]) || QUAL_RE.test(cells[1])));
         if (!okName || !okVal) continue;
       }
 
