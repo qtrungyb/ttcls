@@ -17,6 +17,9 @@ window.CLS = window.CLS || {};
     el.abbrIcon.className = state.showAbbr ? 'fas fa-font' : 'fas fa-align-left';
     el.abbrBtnText.textContent = state.showAbbr ? 'Viết tắt' : 'Tên đủ';
     el.toggleAbbrBtn.classList.toggle('active', state.showAbbr);
+	if (el.toggleUrineBtn) {
+	   el.toggleUrineBtn.classList.toggle('active', state.compactUrine);
+	 }
 
     el.autoToggleBtn.classList.toggle('active', state.autoSummarizeEnabled);
 	if (el.autoScanToggleBtn) {
@@ -152,8 +155,13 @@ window.CLS = window.CLS || {};
     const { state, escapeHtml, escapeAttr } = window.CLS;
     const st = r._status;
     const isSel = state.selectedIndices.includes(i);
-    const isAbbr = state.showAbbr && state.currentAbbrMap[r.cleanName];
-    const n = isAbbr ? state.currentAbbrMap[r.cleanName] : r.cleanName;
+    const isConclusion = r.refRange === 'CĐHA' || r.refRange === 'TDCN';
+    const mappedAbbr = state.showAbbr ? state.currentAbbrMap[r.cleanName] : '';
+    const shortened = (!isConclusion && state.showAbbr && !mappedAbbr && window.CLSShared?.shortenVerboseName)
+      ? window.CLSShared.shortenVerboseName(r.cleanName)
+      : r.cleanName;
+    const isAbbr = Boolean(mappedAbbr) || shortened !== r.cleanName;
+    const n = mappedAbbr || shortened;
     const nHtml = isAbbr
       ? `<span class="abbr-tip" title="${escapeAttr(r.cleanName)}">${escapeHtml(n)}</span>`
       : escapeHtml(n);

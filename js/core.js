@@ -9,6 +9,7 @@ window.CLS.STORAGE = {
   AUTO_SCAN: 'autoScanHIS',
   SHOW_UNIT: 'showUnit',
   SHOW_ABBR: 'showAbbr',
+  COMPACT_URINE: 'compactUrine',
   COPY_FORMAT: 'copyFormat',
   AUTO_SUMMARIZE: 'autoSummarize',
   THEME: 'theme'
@@ -109,6 +110,7 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
     firebaseAbbrList: [],
     showUnit: localStorage.getItem(STORAGE.SHOW_UNIT) === 'true',
     showAbbr: localStorage.getItem(STORAGE.SHOW_ABBR) !== 'false',
+	compactUrine: localStorage.getItem(STORAGE.COMPACT_URINE) !== 'false',
     copyFormat: localStorage.getItem(STORAGE.COPY_FORMAT) || 'comma',
     autoSummarizeEnabled: localStorage.getItem(STORAGE.AUTO_SUMMARIZE) !== 'false',
     currentRows: [],
@@ -149,6 +151,7 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 
     toggleUnitBtn: $('#toggleUnitBtn'),
     toggleAbbrBtn: $('#toggleAbbrBtn'),
+	toggleUrineBtn: $('#toggleUrineBtn'),
     unitIcon: $('#unitIcon'),
     abbrIcon: $('#abbrIcon'),
     unitBtnText: $('#unitBtnText'),
@@ -244,9 +247,10 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 
     if (s.includes('hồng cầu') || s.includes('huyết sắc tố') || s.includes('hematocrit') ||
         s.includes('hemoglobin') || s.includes('tiểu cầu') || s.includes('bạch cầu') ||
+        s.includes('máu lắng') || s.includes('tốc độ lắng') ||
         s.includes('neutrophil') || s.includes('lympho') || s.includes('mono') ||
         s.includes('eosino') || s.includes('baso') || s.includes('tỷ lệ bạch cầu') ||
-        /\b(mcv|mch|mchc|rdw|mpv|pdw|wbc|rbc|plt|hgb|hct|neut|lym)\b/.test(s)) return 'HuyetHoc';
+        /\b(mcv|mch|mchc|rdw|mpv|pdw|wbc|rbc|plt|hgb|hct|neut|lym|vss|esr)\b/.test(s)) return 'HuyetHoc';
 
     if (s.includes('hbsag') || s.includes('anti-hbs') || s.includes('anti-hcv') ||
         s.includes('anti-hiv') || s.includes('tsh') || s.includes('ft3') || s.includes('ft4') ||
@@ -322,42 +326,29 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 /* ---------- Parser ---------- */
 (function() {
   const { RANGE_REGEX, LE_REGEX, L_REGEX, GE_REGEX, G_REGEX } = window.CLS;
-
-  const nameRegex = /^\([^)]+\)\s*(.*)/;
-  const innerContentRegex = /\s*\(([^)]+)\)/g;
-  const validKeepText = ['inr','bệnh/ chứng r','bệnh/chứng r','alt','ast'];
-  const cleanNameCache = new Map();
-  const CLEAN_CACHE_LIMIT = 500;
+  const S = window.CLSShared;
 
   window.CLS.cleanName = function(raw) {
-    if (!raw) return '';
-    if (cleanNameCache.has(raw)) return cleanNameCache.get(raw);
-    let str = raw.trim().replace(/^["']|["']$/g, '');
-    let m = str.match(nameRegex);
-    let name = m ? m[1].trim() : str;
-    name = name.replace(innerContentRegex, (match, inner) =>
-      validKeepText.includes(inner.trim().toLowerCase()) ? match : ''
-    );
-    const result = name.trim();
-    if (cleanNameCache.size >= CLEAN_CACHE_LIMIT) cleanNameCache.clear();
-    cleanNameCache.set(raw, result);
-    return result;
+    if (S?.cleanName) return S.cleanName(raw);
+    return String(raw || '').trim();
   };
 
   window.CLS.getStatus = function(valStr, rangeStr) {
+    if (S?.getStatus) return S.getStatus(valStr, rangeStr);
     const val = window.CLS.parseNumber(valStr);
     if (isNaN(val) || !rangeStr) return 'unknown';
     let m;
     if ((m = rangeStr.match(RANGE_REGEX))) return (val < window.CLS.parseNumber(m[1]) || val > window.CLS.parseNumber(m[2])) ? 'abnormal' : 'normal';
     if ((m = rangeStr.match(LE_REGEX)))    return val <= window.CLS.parseNumber(m[2]) ? 'normal' : 'abnormal';
     if ((m = rangeStr.match(L_REGEX)))     return val <  window.CLS.parseNumber(m[1]) ? 'normal' : 'abnormal';
-    if ((m = rangeStr.match(GE_REGEX)))    return val >= window.CLS.parseNumber(m[1]) ? 'normal' : 'abnormal';
+    if ((m = rangeStr.match(GE_REGEX)))    return val >= window.CLS.parseNumber(m[2]) ? 'normal' : 'abnormal';
     if ((m = rangeStr.match(G_REGEX)))     return val >  window.CLS.parseNumber(m[1]) ? 'normal' : 'abnormal';
     return 'unknown';
   };
 
   window.CLS.parseInputToRows = function(input) {
-    const lines = input.split(/\r?\n/);
+    if (S?.parseInputToRows) return S.parseInputToRows(input);
+    const lines = String(input || '').split(/\r?\n/);
     const rows = [];
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -366,7 +357,6 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
         const refRange = cols[3] || '';
         rows.push({
           stt: cols[0],
-          rawName: cols[1],
           cleanName: window.CLS.cleanName(cols[1]),
           value: cols[2],
           refRange,
@@ -381,30 +371,26 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 
 /* ---------- Summary ---------- */
 (function() {
-  window.CLS.computeSummary = function(rows) {
-    const { state, SEP_INNER, escapeHtml, escapeAttr } = window.CLS;
-    const htmlParts = [];
-    const plainParts = [];
-    for (const r of rows) {
-      if (!r.value || r.value.trim().toLowerCase() === '- neg') continue;
+  window.CLS.computeSummary = function(rows, opts = {}) {
+    const { state } = window.CLS;
+    const S = window.CLSShared;
+    const settings = {
+      showUnit: state.showUnit,
+      showAbbr: state.showAbbr,
+      compactUrine: state.compactUrine,
+      copyFormat: state.copyFormat
+    };
 
-      const isAbbr = state.showAbbr && state.currentAbbrMap[r.cleanName];
-      const n = isAbbr ? state.currentAbbrMap[r.cleanName] : r.cleanName;
-      const sep = SEP_INNER[n] || ' ';
-      const u = (state.showUnit && r.unit) ? ' ' + r.unit : '';
-      const ev = escapeHtml(r.value);
-      const hv = r._status === 'abnormal' ? `<span class="abnormal-value">${ev}</span>` : ev;
-
-      const nHtml = isAbbr
-        ? `<span class="abbr-tip" title="${escapeAttr(r.cleanName)}">${escapeHtml(n)}</span>`
-        : escapeHtml(n);
-
-      htmlParts.push(`${nHtml}${sep}${hv}${escapeHtml(u)}`);
-      plainParts.push(`${n}${sep}${r.value}${u}`);
+    if (S?.formatRows) {
+      if (opts.allowCompactUrine !== false && state.compactUrine && S.getShortServiceLabel('', rows) === 'TPTNT') {
+        const abnUrine = rows.filter((r) => !S.isNormalUrineRow(r));
+        if (!abnUrine.length) return { html: 'Bình thường', plain: 'Bình thường' };
+        return S.formatRows(abnUrine, settings, state.currentAbbrMap);
+      }
+      return S.formatRows(rows, settings, state.currentAbbrMap);
     }
-    const sepHtml  = state.copyFormat === 'newline' ? '<br>' : (state.copyFormat === 'semicolon' ? '; ' : ', ');
-    const sepPlain = state.copyFormat === 'newline' ? '\n'  : (state.copyFormat === 'semicolon' ? '; ' : ', ');
-    return { html: htmlParts.join(sepHtml), plain: plainParts.join(sepPlain) };
+
+    return { html: '', plain: '' };
   };
 
   window.CLS.getSummaryPlainText = function() {

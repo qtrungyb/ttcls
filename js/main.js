@@ -43,212 +43,6 @@ window.CLS = window.CLS || {};
     el.itemModal.classList.remove('hidden');
   }
 
-  // Hàm này được bơm (inject) trực tiếp vào trang HIS — không dùng biến ngoài phạm vi hàm
-  function extractDataFromHIS() {
-    const clean = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-
-    function isVisible(node) {
-      if (!node || !node.getBoundingClientRect) return false;
-      const style = window.getComputedStyle(node);
-      if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
-        return false;
-      }
-      const rect = node.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    }
-
-    function getCellText(cell) {
-      if (!cell) return '';
-      const field = cell.querySelector('input:not([type="checkbox"]):not([type="radio"]), textarea, select');
-      if (field) {
-        if (field.tagName === 'SELECT') {
-          return clean(field.options[field.selectedIndex]?.text || '');
-        }
-        return clean(field.value);
-      }
-      return clean(cell.innerText || cell.textContent);
-    }
-
-    function mapHeaderRow(row) {
-      const map = { stt: -1, name: -1, value: -1, ref: -1, unit: -1 };
-      const cells = Array.from(row.cells || []);
-
-      cells.forEach((cell, idx) => {
-        const h = getCellText(cell).toLowerCase();
-        if (!h) return;
-
-        if (map.stt === -1 && /^(stt|tt|#)$/.test(h)) {
-          map.stt = idx;
-        } else if (
-          map.name === -1 &&
-          !h.includes('loại xét nghiệm') &&
-          (h === 'chỉ số' || h.includes('chỉ số') || h.includes('tên xét nghiệm') ||
-           h.includes('tên xn') || h.includes('thông số'))
-        ) {
-          map.name = idx;
-        } else if (
-          map.value === -1 &&
-          !h.includes('tiền sử') && !h.includes('cũ') && !h.includes('trước') &&
-          (h === 'kết quả' || h.includes('kết quả') || h === 'kq' || h === 'giá trị' || h === 'result')
-        ) {
-          map.value = idx;
-        } else if (
-          map.ref === -1 &&
-          (h.includes('tham chiếu') || h.includes('trị số') || h.includes('bình thường') ||
-           h.includes('csbt') || h.includes('ngưỡng') || h.includes('reference'))
-        ) {
-          map.ref = idx;
-        } else if (
-          map.unit === -1 &&
-          (h.includes('đơn vị') || h === 'đv' || h === 'unit')
-        ) {
-          map.unit = idx;
-        }
-      });
-
-      let score = 0;
-      if (map.name !== -1) score += 3;
-      if (map.value !== -1) score += 3;
-      if (map.ref !== -1) score += 2;
-      if (map.unit !== -1) score += 1;
-      if (map.stt !== -1) score += 1;
-
-      return { map, score, colCount: cells.length };
-    }
-
-    function findPairedBodyTable(headerTable, expectedCols) {
-      let container = headerTable.parentElement;
-      for (let depth = 0; depth < 3 && container && container !== document.body; depth++) {
-        const candidates = Array.from(container.querySelectorAll('table')).filter((t) => {
-          if (t === headerTable || !isVisible(t)) return false;
-          if (!(headerTable.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)) return false;
-          const rows = t.tBodies.length ? Array.from(t.tBodies[0].rows) : Array.from(t.rows);
-          return rows.length > 0;
-        });
-
-        if (candidates.length) {
-          const exact = candidates.find((t) => {
-            const firstRow = (t.tBodies[0]?.rows[0]) || t.rows[0];
-            return firstRow && firstRow.cells.length === expectedCols;
-          });
-          return exact || candidates[0];
-        }
-        container = container.parentElement;
-      }
-      return null;
-    }
-
-    // Ưu tiên 1: Chỉ dùng vùng bôi đen nếu người dùng thực sự quét khối nhiều cột/dòng
-    const selection = window.getSelection()?.toString() || '';
-    if (selection.trim() && /[\t\n]/.test(selection) && /\d/.test(selection)) {
-      return { type: 'selection', text: selection.trim() };
-    }
-
-    // Ưu tiên 2: Tự động tìm đúng bảng "Danh sách chỉ số" đang hiển thị
-    const visibleTables = Array.from(document.querySelectorAll('table')).filter(isVisible);
-    let bestCls = null;
-
-    for (const table of visibleTables) {
-      const headerCandidates = table.tHead
-        ? Array.from(table.tHead.rows)
-        : Array.from(table.rows).slice(0, 2);
-
-      let bestHeader = null;
-      let headerRowRef = null;
-      for (const hRow of headerCandidates) {
-        const res = mapHeaderRow(hRow);
-        if (!bestHeader || res.score > bestHeader.score) {
-          bestHeader = res;
-          headerRowRef = hRow;
-        }
-      }
-
-      // Bắt buộc có cả cột "Chỉ số" và "Kết quả"
-      if (!bestHeader || bestHeader.map.name === -1 || bestHeader.map.value === -1) continue;
-
-      let dataRows = [];
-      if (table.tBodies && table.tBodies.length) {
-        for (const tb of table.tBodies) dataRows.push(...Array.from(tb.rows));
-      } else {
-        dataRows = Array.from(table.rows);
-      }
-      dataRows = dataRows.filter((r) => r !== headerRowRef && isVisible(r));
-
-      // Xử lý trường hợp bảng tách header và body thành 2 thẻ <table> riêng
-      if (!dataRows.length) {
-        const bodyTable = findPairedBodyTable(table, bestHeader.colCount);
-        if (bodyTable) {
-          const bodyRows = bodyTable.tBodies?.length
-            ? Array.from(bodyTable.tBodies[0].rows)
-            : Array.from(bodyTable.rows);
-          dataRows = bodyRows.filter(isVisible);
-        }
-      }
-
-      const { map } = bestHeader;
-      const lines = [];
-      let autoStt = 1;
-
-      for (const row of dataRows) {
-        const cells = Array.from(row.cells || []);
-        if (cells.length <= Math.max(map.name, map.value)) continue;
-
-        const name = getCellText(cells[map.name]);
-        const value = getCellText(cells[map.value]);
-        if (!name || !value) continue;
-
-        const nameLower = name.toLowerCase();
-        if (nameLower === 'chỉ số' || nameLower === 'tên xét nghiệm') continue;
-
-        let stt = map.stt !== -1 && cells[map.stt] ? getCellText(cells[map.stt]) : '';
-        if (!/^\d+$/.test(stt)) stt = String(autoStt);
-        autoStt++;
-
-        const ref = map.ref !== -1 && cells[map.ref] ? getCellText(cells[map.ref]) : '';
-        const unit = map.unit !== -1 && cells[map.unit] ? getCellText(cells[map.unit]) : '';
-
-        // Giữ '—' nếu khoảng tham chiếu trống để không bị trượt cột Đơn vị
-        lines.push([stt, name, value, ref || '—', unit].join('\t'));
-      }
-
-      if (lines.length > 0) {
-        const candidate = {
-          type: 'cls_table',
-          score: bestHeader.score,
-          rowCount: lines.length,
-          text: lines.join('\n')
-        };
-        if (
-          !bestCls ||
-          candidate.score > bestCls.score ||
-          (candidate.score === bestCls.score && candidate.rowCount > bestCls.rowCount)
-        ) {
-          bestCls = candidate;
-        }
-      }
-    }
-
-    if (bestCls) return bestCls;
-
-    // Ưu tiên 3 (Dự phòng): Quét bảng hiển thị lớn nhất nếu giao diện khác chuẩn
-    if (visibleTables.length > 0) {
-      let bestTable = visibleTables[0];
-      for (const t of visibleTables) {
-        if ((t.innerText || '').length > (bestTable.innerText || '').length) {
-          bestTable = t;
-        }
-      }
-      let resultText = '';
-      for (const row of bestTable.rows) {
-        if (!isVisible(row)) continue;
-        resultText += Array.from(row.cells).map(getCellText).join('\t') + '\n';
-      }
-      return { type: 'table', text: resultText.trim() };
-    }
-
-    return null;
-  }
-
    window.CLS.performSummarize = function(meta = null) {
     const { state, el, parseInputToRows, computeSummary, updateSummary,
             updateStats, renderTable, closeDrawer, pushHistory, showToast, copyToClipboard } = window.CLS;
@@ -346,11 +140,7 @@ window.CLS = window.CLS || {};
     const WEB_MERGE_KEY = 'cls_web_merge_session_v1';
     const WEB_MERGE_ON_KEY = 'cls_web_merge_enabled';
     const WEB_MERGE_FILTER_KEY = 'cls_web_merge_filter';
-    const WEB_MERGE_PRIORITY = {
-      CTM: 1, SHM: 2, ĐGĐ: 3, XN: 4, MD: 5, ĐM: 6, KM: 7, VS: 8, TPTNT: 9,
-      CĐHA: 10, TDCN: 11
-    };
-
+    const S = window.CLSShared;
     const mergeToggleBtn = document.getElementById('mergeToggleBtn');
     const mergeBtnText = document.getElementById('mergeBtnText');
     const webMergeBar = document.getElementById('webMergeBar');
@@ -368,42 +158,16 @@ window.CLS = window.CLS || {};
     state.mergePatient = { id: '', name: '', contextKey: '' };
     state.mergedSheets = [];
 
-    const escHtml = (s) => s ? String(s).replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) : '';
-    const escAttr = (s) => s ? String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : '';
+    const escHtml = (s) => S.escapeHtml(s);
+    const escAttr = (s) => S.escapeAttr(s);
 
-    function webRowOverlap(rowsA, rowsB) {
-      if (!rowsA?.length || !rowsB?.length) return 0;
-      const setA = new Set(rowsA.map((r) => r.cleanName.toLowerCase()));
-      const setB = new Set(rowsB.map((r) => r.cleanName.toLowerCase()));
-      let common = 0;
-      for (const n of setA) if (setB.has(n)) common++;
-      return common / Math.min(setA.size, setB.size);
-    }
-
-    function webShortLabel(serviceName, rows) {
-      if ((rows || []).length > 0 && rows.every((r) => r.refRange === 'CĐHA' || r.refRange === 'TDCN')) {
-        return rows[0].refRange;
-      }
-      const names = (rows || []).map((r) => r.cleanName.toLowerCase()).join(' | ');
-      const svc = String(serviceName || '').toLowerCase();
-      if (svc.includes('nước tiểu') || svc.includes('tptnt') || names.includes('tỷ trọng') || names.includes('urobilinogen') || names.includes('nitrit') || names.includes('cetonic') || names.includes('keton')) return 'TPTNT';
-      if (names.includes('huyết sắc tố') || names.includes('hematocrit') || names.includes('số lượng hồng cầu') || names.includes('số lượng tiểu cầu') || names.includes('số lượng bạch cầu') || names.includes('thể tích trung bình hồng cầu') || /\bmcv\b|\bmch\b|\bmchc\b/.test(names)) return 'CTM';
-      if (/\binr\b|\baptt\b/.test(names) || names.includes('fibrinogen') || names.includes('prothrombin') || names.includes('d-dimer')) return 'ĐM';
-      if (/\bpco2\b|\bpo2\b|\bhco3\b/.test(names)) return 'KM';
-      if (svc.includes('miễn dịch') || names.includes('ferritin') || names.includes('procalcitonin') || names.includes('troponin') || names.includes('pro-bnp') || names.includes('hbsag') || names.includes('anti-hbs') || names.includes('anti-hcv') || names.includes('dengue') || names.includes('beta-hcg') || names.includes('cortisol') || names.includes('insulin') || names.includes('vitamin d') || names.includes('vitamin b12') || names.includes('acid folic') || /\b(tsh|ft3|ft4|afp|cea|psa|hiv|ns1|ige|igg|igm|aso|anti-ccp)\b/.test(names)) return 'MD';
-      if (names.includes('sgpt') || names.includes('sgot') || /\b(alt|ast|ggt|crp|hdl|ldl|ldh|ck-mb|alp|tibc|nh3)\b/.test(names) || names.includes('creatinin') || names.includes('urê') || names.includes('urea') || names.includes('glucose') || names.includes('cholesterol') || names.includes('triglycerid') || names.includes('acid uric') || names.includes('hba1c') || names.includes('amylase') || names.includes('lipase') || names.includes('albumin') || names.includes('protein') || names.includes('bilirubin') || names.includes('sắt huyết thanh') || names.includes('định lượng sắt') || names.includes('transferrin') || names.includes('canxi') || names.includes('calcium') || names.includes('magie') || names.includes('phospho') || names.includes('lactat')) return 'SHM';
-      if (svc.includes('điện giải') || names.includes('natri') || names.includes('kali') || names.includes('clo') || names.includes('na+') || names.includes('k+')) return 'ĐGĐ';
-      if (svc.includes('huyết học') || svc.includes('công thức máu') || svc.includes('tế bào máu')) return 'CTM';
-      if (svc.includes('hóa sinh') || svc.includes('sinh hóa')) return 'SHM';
-      if (svc.includes('đông máu')) return 'ĐM';
-      if (svc.includes('vi sinh')) return 'VS';
-      if (svc.includes('khí máu')) return 'KM';
-      if (serviceName) return serviceName.replace(/^xét nghiệm\s+/i, '').trim().slice(0, 18);
-      return 'XN';
-    }
-
-    function sortWebMergedSheets() {
-      state.mergedSheets.sort((a, b) => (WEB_MERGE_PRIORITY[a.label] || 9) - (WEB_MERGE_PRIORITY[b.label] || 9));
+    function getWebChipGroupClass(label) {
+      const k = String(label || '').toUpperCase();
+      if (k === 'CTM' || k === 'VSS') return 'chip-ctm';
+      if (k === 'SHM' || k === 'ĐGĐ') return 'chip-shm';
+      if (k === 'TPTNT') return 'chip-tptnt';
+      if (k === 'CĐHA' || k === 'TDCN') return 'chip-img';
+      return 'chip-other';
     }
 
     function saveWebMergeSession(syncToExt = true) {
@@ -434,11 +198,11 @@ window.CLS = window.CLS || {};
       state.mergedSheets = Array.isArray(saved.sheets)
         ? saved.sheets
             .map((s) => {
-              const rows = window.CLS.parseInputToRows(s.rawText);
+              const rows = S.parseInputToRows(s.rawText);
               if (!rows.length) return null;
               return {
                 key: s.key,
-                label: webShortLabel(s.serviceName, rows),
+                label: S.getShortServiceLabel(s.serviceName, rows),
                 serviceName: s.serviceName || '',
                 resultTime: s.resultTime || '',
                 rawText: s.rawText,
@@ -447,82 +211,34 @@ window.CLS = window.CLS || {};
             })
             .filter(Boolean)
         : [];
-      sortWebMergedSheets();
+      S.sortSheets(state.mergedSheets);
     }
-    if (typeof window.CLS.computeSummary === 'function' && !window.CLS.computeSummary.__cdhaWrapped) {
-      const origComputeSummary = window.CLS.computeSummary;
-      window.CLS.computeSummary = function(rows) {
-        const isAllConclusion = rows.length > 0 && rows.every((r) => r.refRange === 'CĐHA' || r.refRange === 'TDCN');
-        if (!isAllConclusion) return origComputeSummary(rows);
 
-        const htmlParts = [];
-        const plainParts = [];
-        for (const r of rows) {
-          if (!r.value) continue;
-          const out = origComputeSummary([{ ...r, value: '__CLS_COLON__' + r.value, unit: '' }]);
-          htmlParts.push(out.html.replace(/\s+__CLS_COLON__/g, ': '));
-          plainParts.push(out.plain.replace(/\s+__CLS_COLON__/g, ': '));
-        }
-        const joinHtml = state.copyFormat === 'newline' ? '<br>' : '; ';
-        const joinPlain = state.copyFormat === 'newline' ? '\n' : '; ';
-        return { html: htmlParts.join(joinHtml), plain: plainParts.join(joinPlain) };
-      };
-      window.CLS.computeSummary.__cdhaWrapped = true;
-    }
     function buildWebMergedResult() {
-      const total = state.mergedSheets.reduce((sum, s) => sum + s.rows.length, 0);
-      const abn = state.mergedSheets.reduce((sum, s) => sum + s.rows.filter((r) => r._status === 'abnormal').length, 0);
-      let selectedCount = 0;
-
       if (!state.mergedSheets.length) {
         return { total: 0, abn: 0, selectedCount: 0, html: '', plain: '' };
       }
 
-      const groups = [];
+      const settings = {
+        showUnit: state.showUnit,
+        showAbbr: state.showAbbr,
+        compactUrine: state.compactUrine,
+        copyFormat: state.copyFormat,
+        mergeFilter: state.mergeFilter
+      };
+      const res = S.formatMergedSheets(state.mergedSheets, settings, state.currentAbbrMap);
+
+      let selectedCount = 0;
       for (const sheet of state.mergedSheets) {
-        let filtered = sheet.rows;
-        if (state.mergeFilter === 'main') {
-          const m = sheet.rows.filter((r) => SPECIAL_NAMES.includes(r.cleanName));
-          filtered = m.length ? m : sheet.rows;
-        } else if (state.mergeFilter === 'abnormal') {
-          filtered = sheet.rows.filter((r) => r._status === 'abnormal');
-        }
-        if (!filtered.length) continue;
-        selectedCount += filtered.length;
-
-        const target = groups.find((g) => g.label === sheet.label && webRowOverlap(g.rows, filtered) === 0);
-        if (target) target.rows.push(...filtered);
-        else groups.push({ label: sheet.label, rows: [...filtered] });
-      }
-
-      const htmlBlocks = [];
-      const plainBlocks = [];
-      for (const g of groups) {
-        if (g.label === 'CĐHA' || g.label === 'TDCN') {
-          for (const r of g.rows) {
-            const { html, plain } = window.CLS.computeSummary([r]);
-            if (!plain) continue;
-            const colonPos = html.indexOf(': ');
-            const formattedHtml = colonPos !== -1
-              ? `<span class="grp-label">- ${html.slice(0, colonPos + 1)}</span>${html.slice(colonPos + 1)}`
-              : `<span class="grp-label">-</span> ${html}`;
-            htmlBlocks.push(formattedHtml);
-            plainBlocks.push(`- ${plain}`);
-          }
-          continue;
-        }
-        const { html, plain } = window.CLS.computeSummary(g.rows);
-        if (!plain) continue;
-        if (state.copyFormat === 'newline') {
-          htmlBlocks.push(`<span class="grp-label">- ${escHtml(g.label)}:</span><br>${html}`);
-          plainBlocks.push(`- ${g.label}:\n${plain}`);
+        const filtered = S.filterRows(sheet.rows, state.mergeFilter, sheet.label);
+        if (sheet.label === 'TPTNT' && state.compactUrine) {
+          selectedCount += filtered.filter((r) => !S.isNormalUrineRow(r)).length;
         } else {
-          htmlBlocks.push(`<span class="grp-label">- ${escHtml(g.label)}:</span> ${html}`);
-          plainBlocks.push(`- ${g.label}: ${plain}`);
+          selectedCount += filtered.length;
         }
       }
 
-      return { total, abn, selectedCount, html: htmlBlocks.join('<br>'), plain: plainBlocks.join('\n') };
+      return { total: res.total, abn: res.abnTotal, selectedCount, html: res.html, plain: res.plain };
     }
 
     function renderWebMergeUI() {
@@ -553,9 +269,10 @@ window.CLS = window.CLS || {};
           webMergeChips.innerHTML = state.mergedSheets.map((s, idx) => {
             const tip = [s.serviceName || s.label, s.resultTime].filter(Boolean).join(' — ');
             const isImg = s.label === 'CĐHA' || s.label === 'TDCN';
-            const chipLabel = isImg && s.rows[0]?.cleanName ? s.rows[0].cleanName.slice(0, 22) : s.label;
+            const chipLabel = isImg && s.rows[0]?.cleanName ? s.rows[0].cleanName : s.label;
             const chipCount = isImg ? '' : `<span class="web-merge-chip-count">(${s.rows.length})</span>`;
-            return `<span class="web-merge-chip" data-idx="${idx}" title="${escAttr(tip)}"><span>${escHtml(chipLabel)}</span>${chipCount}<button class="web-merge-chip-del" data-del="${idx}" title="Bỏ phiếu này">&times;</button></span>`;
+            const grpCls = getWebChipGroupClass(s.label);
+            return `<span class="web-merge-chip ${grpCls}" data-idx="${idx}" title="${escAttr(tip)}"><span class="web-merge-chip-text">${escHtml(chipLabel)}</span>${chipCount}<button class="web-merge-chip-del" data-del="${idx}" title="Bỏ phiếu này">&times;</button></span>`;
           }).join('');
         }
       }
@@ -603,41 +320,24 @@ window.CLS = window.CLS || {};
       if (incomingName) state.mergePatient.name = incomingName;
       if (incomingKey) state.mergePatient.contextKey = incomingKey;
 
-      const label = webShortLabel(meta?.serviceName, rows);
+      const label = S.getShortServiceLabel(meta?.serviceName, rows);
       const resultTime = (meta?.resultTime || '').trim();
-      const sig = rows.slice(0, 3).map((r) => r.cleanName.toLowerCase()).join('|');
-      const key = [label.toLowerCase(), resultTime, sig].filter(Boolean).join('__');
-
+      const key = S.makeSheetKey(label, resultTime, rows);
       const sheetObj = { key, label, serviceName: meta?.serviceName || label, resultTime, rawText, rows };
 
-      let existingIdx = state.mergedSheets.findIndex((s) => s.rawText === rawText);
-      const isGenericImgName = (n) => /^(cđha|tdcn|siêu âm|chụp x-quang|x-quang|điện tim|nội soi)$/i.test(String(n || '').trim());
-
-      if (existingIdx === -1) {
-        existingIdx = state.mergedSheets.findIndex((s) => {
-          if (s.label !== label) return false;
-          if (s.resultTime && resultTime && s.resultTime !== resultTime) return false;
-          if (label === 'CĐHA' || label === 'TDCN') {
-            const oldName = s.rows[0]?.cleanName || '';
-            const newName = rows[0]?.cleanName || '';
-            if (!oldName || !newName || isGenericImgName(newName)) return false;
-            return oldName.toLowerCase() === newName.toLowerCase();
-          }
-          return webRowOverlap(s.rows, rows) >= 0.5;
-        });
-      }
-
+      const existingIdx = S.findMatchingSheetIndex(state.mergedSheets, { rawText, label, resultTime, rows });
       const isUpdated = existingIdx !== -1;
       if (isUpdated) {
         if (!sheetObj.resultTime && state.mergedSheets[existingIdx].resultTime) {
           sheetObj.resultTime = state.mergedSheets[existingIdx].resultTime;
+          sheetObj.key = S.makeSheetKey(label, sheetObj.resultTime, rows);
         }
         state.mergedSheets[existingIdx] = sheetObj;
       } else {
         state.mergedSheets.push(sheetObj);
       }
 
-      sortWebMergedSheets();
+      S.sortSheets(state.mergedSheets);
       saveWebMergeSession(true);
       return { label, isUpdated, patientSwitched, count: state.mergedSheets.length };
     };
@@ -1040,21 +740,36 @@ window.CLS = window.CLS || {};
         document.dispatchEvent(new CustomEvent('cls-merge-request'));
       }
     }, 500);
+    const hasDisplayData = () => state.currentRows.length || (state.mergeEnabled && state.mergedSheets.length);
+
     /* Toggles */
     el.toggleUnitBtn.addEventListener('click', () => {
       state.showUnit = !state.showUnit;
       localStorage.setItem(STORAGE.SHOW_UNIT, state.showUnit);
       updateUI();
-      if (state.currentRows.length) updateSummary();
-      pushSettingsToExtension(); // 👈 Thêm (1)
+      if (hasDisplayData()) updateSummary();
+      pushSettingsToExtension();
     });
     el.toggleAbbrBtn.addEventListener('click', () => {
       state.showAbbr = !state.showAbbr;
       localStorage.setItem(STORAGE.SHOW_ABBR, state.showAbbr);
       updateUI();
-      if (state.currentRows.length) { renderTable(); updateSummary(); }
-      pushSettingsToExtension(); // 👈 Thêm (2)
+      if (state.currentRows.length) renderTable();
+      if (hasDisplayData()) updateSummary();
+      pushSettingsToExtension();
     });
+    if (el.toggleUrineBtn) {
+      el.toggleUrineBtn.addEventListener('click', () => {
+        state.compactUrine = !state.compactUrine;
+        localStorage.setItem(STORAGE.COMPACT_URINE, state.compactUrine);
+        updateUI();
+        if (hasDisplayData()) { updateSummary(); updateStats(); }
+        pushSettingsToExtension();
+        const plain = getSummaryPlainText();
+        if (plain) copyToClipboard(plain);
+        showToast(state.compactUrine ? 'Đã bật rút gọn TPTNT' : 'Hiển thị đầy đủ TPTNT');
+      });
+    }
     el.autoToggleBtn.addEventListener('click', () => {
       state.autoSummarizeEnabled = !state.autoSummarizeEnabled;
       localStorage.setItem(STORAGE.AUTO_SUMMARIZE, state.autoSummarizeEnabled);
@@ -1098,8 +813,8 @@ window.CLS = window.CLS || {};
       localStorage.setItem(STORAGE.COPY_FORMAT, state.copyFormat);
       el.formatDropdownMenu.classList.add('hidden');
       updateUI();
-      if (state.currentRows.length) updateSummary();
-      pushSettingsToExtension(); // 👈 Thêm (5)
+      if (hasDisplayData()) updateSummary();
+      pushSettingsToExtension();
     }));
 
     /* Drawer */

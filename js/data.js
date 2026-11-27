@@ -47,7 +47,10 @@ window.CLS = window.CLS || {};
       }
       state.lastTableSignature = '';
       renderAbbrList();
-      if (state.currentRows.length) { renderTable(); updateSummary(); }
+      if (state.currentRows.length) renderTable();
+      if (state.currentRows.length || (state.mergeEnabled && state.mergedSheets.length)) {
+        updateSummary();
+      }
     }, (err) => {
       console.error('❌ abbrRef on() failed:', err);
     });
