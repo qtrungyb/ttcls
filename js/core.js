@@ -326,14 +326,16 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 /* ---------- Parser ---------- */
 (function() {
   const { RANGE_REGEX, LE_REGEX, L_REGEX, GE_REGEX, G_REGEX } = window.CLS;
-  const S = window.CLSShared;
+  const getShared = () => window.CLSShared;
 
   window.CLS.cleanName = function(raw) {
+    const S = getShared();
     if (S?.cleanName) return S.cleanName(raw);
-    return String(raw || '').trim();
+    return String(raw || '').trim().replace(/^\([^)]+\)\s*/, '').trim();
   };
 
   window.CLS.getStatus = function(valStr, rangeStr) {
+    const S = getShared();
     if (S?.getStatus) return S.getStatus(valStr, rangeStr);
     const val = window.CLS.parseNumber(valStr);
     if (isNaN(val) || !rangeStr) return 'unknown';
@@ -347,23 +349,54 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
   };
 
   window.CLS.parseInputToRows = function(input) {
+    const S = getShared();
     if (S?.parseInputToRows) return S.parseInputToRows(input);
+
     const lines = String(input || '').split(/\r?\n/);
     const rows = [];
+    let autoStt = 1;
+    const HEADER_RE = /^(stt|tt|#|chỉ số|tên xét nghiệm|tên xn|thông số|kết quả|tham chiếu|đơn vị)$/i;
+    const QUAL_RE = /^(?:[+-]+|âm(?:\s*tính)?|dương(?:\s*tính)?|neg(?:ative)?|pos(?:itive)?|norm(?:al)?|bình\s*thường|bt|vết|trace|không|có)\b/i;
+
     for (const line of lines) {
       if (!line.trim()) continue;
-      const cols = line.split('\t').map(c => c.trim()).filter(Boolean);
-      if (cols.length >= 3 && /^\d+$/.test(cols[0])) {
-        const refRange = cols[3] || '';
-        rows.push({
-          stt: cols[0],
-          cleanName: window.CLS.cleanName(cols[1]),
-          value: cols[2],
-          refRange,
-          unit: cols[4] || '',
-          _status: window.CLS.getStatus(cols[2], refRange)
-        });
+      const cells = line.includes('\t')
+        ? line.split('\t').map((c) => c.trim())
+        : (/\s{2,}/.test(line) ? line.trim().split(/\s{2,}/).map((c) => c.trim()) : []);
+      while (cells.length && !cells[0]) cells.shift();
+      while (cells.length && !cells[cells.length - 1]) cells.pop();
+      if (cells.length < 2) continue;
+
+      let stt = '';
+      let rest = cells;
+      if (/^\d+[.)]?$/.test(cells[0])) {
+        stt = cells[0].replace(/[.)]$/, '');
+        rest = cells.slice(1);
+      } else {
+        const okName = /[a-zA-ZÀ-ỹ]/.test(cells[0]) && !HEADER_RE.test(cells[0]);
+        const okVal = /\d/.test(cells[1]) || QUAL_RE.test(cells[1]) || cells[2] === 'CĐHA' || cells[2] === 'TDCN';
+        if (!okName || !okVal) continue;
       }
+
+      while (rest.length && !rest[0]) rest.shift();
+      const name = rest[0] || '';
+      let vIdx = 1;
+      while (vIdx < rest.length && !rest[vIdx]) vIdx++;
+      const value = rest[vIdx] || '';
+      const refRange = rest[vIdx + 1] || '';
+      const unit = rest[vIdx + 2] || '';
+      if (!name || !value || HEADER_RE.test(name)) continue;
+
+      if (!/^\d+$/.test(stt)) stt = String(autoStt);
+      autoStt++;
+      rows.push({
+        stt,
+        cleanName: window.CLS.cleanName(name),
+        value,
+        refRange,
+        unit,
+        _status: window.CLS.getStatus(value, refRange)
+      });
     }
     return rows;
   };
@@ -372,7 +405,7 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
 /* ---------- Summary ---------- */
 (function() {
   window.CLS.computeSummary = function(rows, opts = {}) {
-    const { state } = window.CLS;
+    const { state, escapeHtml, escapeAttr, SEP_INNER } = window.CLS;
     const S = window.CLSShared;
     const settings = {
       showUnit: state.showUnit,
@@ -390,7 +423,27 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
       return S.formatRows(rows, settings, state.currentAbbrMap);
     }
 
-    return { html: '', plain: '' };
+    // Dự phòng nếu shared_cls.js chưa tải được
+    const htmlParts = [];
+    const plainParts = [];
+    for (const r of rows) {
+      if (!r.value || r.value.trim().toLowerCase() === '- neg') continue;
+      const isConclusion = r.refRange === 'CĐHA' || r.refRange === 'TDCN';
+      const abbr = state.showAbbr ? state.currentAbbrMap[r.cleanName] : '';
+      const name = abbr || r.cleanName;
+      const sep = isConclusion ? ': ' : (SEP_INNER[name] || ' ');
+      const unit = (!isConclusion && state.showUnit && r.unit) ? ' ' + r.unit : '';
+      const ev = escapeHtml(r.value);
+      const hv = r._status === 'abnormal' ? `<span class="abnormal-value">${ev}</span>` : ev;
+      const nHtml = abbr
+        ? `<span class="abbr-tip" title="${escapeAttr(r.cleanName)}">${escapeHtml(name)}</span>`
+        : escapeHtml(name);
+      htmlParts.push(`${nHtml}${sep}${hv}${escapeHtml(unit)}`);
+      plainParts.push(`${name}${sep}${r.value}${unit}`);
+    }
+    const sepHtml = state.copyFormat === 'newline' ? '<br>' : (state.copyFormat === 'semicolon' ? '; ' : ', ');
+    const sepPlain = state.copyFormat === 'newline' ? '\n' : (state.copyFormat === 'semicolon' ? '; ' : ', ');
+    return { html: htmlParts.join(sepHtml), plain: plainParts.join(sepPlain) };
   };
 
   window.CLS.getSummaryPlainText = function() {

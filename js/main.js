@@ -74,7 +74,7 @@ window.CLS = window.CLS || {};
     }
 
     // Nhánh chế độ Gộp nhiều phiếu trên Trang chính & PiP
-    if (state.mergeEnabled && window.CLS.upsertWebMergedSheet) {
+    if (state.mergeEnabled && window.CLSShared && window.CLS.upsertWebMergedSheet) {
       const info = window.CLS.upsertWebMergedSheet(el.dataTextarea.value.trim(), rows, meta);
       updateSummary();
       updateStats();
@@ -279,13 +279,14 @@ window.CLS = window.CLS || {};
     }
 
     function updateSummary() {
-      renderWebMergeUI();
-      if (!state.mergeEnabled) return origUpdateSummary();
-      const res = buildWebMergedResult();
-      if (summaryTextEl) {
-        summaryTextEl.innerHTML = res.html || '<div class="empty-state"><i class="fas fa-layer-group"></i><p>Chưa có phiếu nào được gộp</p></div>';
-      }
-    }
+	   renderWebMergeUI();
+	   if (!state.mergeEnabled || !S) return origUpdateSummary();
+	   state.lastSummaryHtml = '';
+	   const res = buildWebMergedResult();
+	   if (summaryTextEl) {
+		 summaryTextEl.innerHTML = res.html || '<div class="empty-state"><i class="fas fa-layer-group"></i><p>Chưa có phiếu nào được gộp</p></div>';
+	   }
+	 }
 
     function updateStats() {
       if (!state.mergeEnabled) return origUpdateStats();
@@ -441,9 +442,16 @@ window.CLS = window.CLS || {};
     }, 300);
 
     el.dataTextarea.addEventListener('input', () => {
-      el.clearTextBtn.classList.toggle('hidden', !el.dataTextarea.value.length);
-      debouncedSummarize();
-    });
+	   el.clearTextBtn.classList.toggle('hidden', !el.dataTextarea.value.length);
+	   debouncedSummarize();
+	 });
+
+	 el.dataTextarea.addEventListener('paste', () => {
+	   setTimeout(() => {
+		 el.clearTextBtn.classList.toggle('hidden', !el.dataTextarea.value.length);
+		 if (state.autoSummarizeEnabled) window.CLS.performSummarize();
+	   }, 20);
+	 });
 
     el.clearTextBtn.addEventListener('click', () => el.clearBtn.click());
     el.summarizeBtn.addEventListener('click', () => window.CLS.performSummarize());
@@ -1048,6 +1056,26 @@ window.CLS = window.CLS || {};
       }
     }
     document.addEventListener('keydown', handleGlobalKeydown);
+	function handleGlobalPaste(e) {
+	   const doc = getActiveDoc();
+	   const active = doc.activeElement;
+	   if (active && active !== doc.body && active !== doc.documentElement) {
+		 const tag = (active.tagName || '').toUpperCase();
+		 if (tag === 'INPUT' || tag === 'TEXTAREA' || active.isContentEditable) return;
+	   }
+	   if (
+		 !el.settingsModal.classList.contains('hidden') ||
+		 !el.itemModal.classList.contains('hidden')
+	   ) return;
+
+	   const text = e.clipboardData?.getData('text') || '';
+	   if (!text.trim()) return;
+	   e.preventDefault();
+	   el.dataTextarea.value = text;
+	   el.clearTextBtn.classList.toggle('hidden', !text.length);
+	   if (state.autoSummarizeEnabled) window.CLS.performSummarize();
+	 }
+	 document.addEventListener('paste', handleGlobalPaste);
 
     /* ---------- Document Picture-in-Picture (PiP) ---------- */
     const pipNodes = [
@@ -1182,6 +1210,7 @@ window.CLS = window.CLS || {};
           }
         });
         pipWin.document.addEventListener('keydown', handleGlobalKeydown);
+		pipWin.document.addEventListener('paste', handleGlobalPaste);
         pipWin.addEventListener('scroll', () => {
           const y = pipWin.scrollY;
           el.scrollTopBtn.classList.toggle('visible', y > 250);
@@ -1254,7 +1283,7 @@ window.CLS = window.CLS || {};
     }
 	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
-      let latestVersion = '2.0.4'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
+      let latestVersion = '2.0.5'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
       const EXT_ZIP_FILE = 'cls-auto.zip';
 
       const extBanner = document.getElementById('extBanner');
