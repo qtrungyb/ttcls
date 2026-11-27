@@ -679,7 +679,6 @@ window.CLS = window.CLS || {};
             showUnit: state.showUnit,
             showAbbr: state.showAbbr,
             compactUrine: Boolean(state.compactUrine),
-            autoSweepTab: Boolean(state.autoSweepTab), // <-- Thêm dòng này
             copyFormat: state.copyFormat,
             themeMode: state.themeMode,
             darkMode: isDark,
@@ -713,10 +712,6 @@ window.CLS = window.CLS || {};
         state.compactUrine = s.compactUrine;
         localStorage.setItem(STORAGE.COMPACT_URINE, state.compactUrine);
         needSummary = true;
-      }
-      if (typeof s.autoSweepTab === 'boolean' && s.autoSweepTab !== state.autoSweepTab) { // <-- Khối thêm mới
-        state.autoSweepTab = s.autoSweepTab;
-        localStorage.setItem(STORAGE.AUTO_SWEEP_TAB, state.autoSweepTab);
       }
       if (s.copyFormat && s.copyFormat !== state.copyFormat) {
         state.copyFormat = s.copyFormat;
@@ -781,15 +776,7 @@ window.CLS = window.CLS || {};
         showToast(state.compactUrine ? 'Đã bật rút gọn TPTNT' : 'Hiển thị đầy đủ TPTNT');
       });
     }
-    if (el.sweepModeToggleBtn) {
-      el.sweepModeToggleBtn.addEventListener('click', () => {
-        state.autoSweepTab = !state.autoSweepTab;
-        localStorage.setItem(STORAGE.AUTO_SWEEP_TAB, state.autoSweepTab);
-        updateUI();
-        pushSettingsToExtension();
-        showToast(state.autoSweepTab ? 'Chế độ: Tự quét cả tab XN/CĐHA' : 'Chế độ: Chỉ quét khi ấn từng nhóm');
-      });
-    }
+   
     el.autoToggleBtn.addEventListener('click', () => {
       state.autoSummarizeEnabled = !state.autoSummarizeEnabled;
       localStorage.setItem(STORAGE.AUTO_SUMMARIZE, state.autoSummarizeEnabled);
@@ -1267,7 +1254,7 @@ window.CLS = window.CLS || {};
     }
 	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
-      let latestVersion = '2.0.0'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
+      let latestVersion = '2.0.1'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
       const EXT_ZIP_FILE = 'cls-auto.zip';
 
       const extBanner = document.getElementById('extBanner');

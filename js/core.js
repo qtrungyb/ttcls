@@ -12,7 +12,6 @@ window.CLS.STORAGE = {
   COMPACT_URINE: 'compactUrine',
   COPY_FORMAT: 'copyFormat',
   AUTO_SUMMARIZE: 'autoSummarize',
-  AUTO_SWEEP_TAB: 'autoSweepTab',
   THEME: 'theme'
 };
 
@@ -104,7 +103,6 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
     || (oldTheme === 'dark' || oldTheme === 'light' ? oldTheme : 'auto');
 
   window.CLS.state = {
-	autoSweepTab: localStorage.getItem(STORAGE.AUTO_SWEEP_TAB) !== 'false',
 	autoScanEnabled: localStorage.getItem(STORAGE.AUTO_SCAN) === 'true',
     lastAutoScannedText: '',
     autoScanTimer: null,
@@ -131,8 +129,6 @@ window.CLS.PANEL_ORDER = ['HuyetHoc', 'SinhHoa', 'DongMau', 'MienDich', 'NuocTie
   };
 
   window.CLS.el = {
-	sweepModeToggleBtn: $('#sweepModeToggleBtn'),
-	sweepModeBtnText: $('#sweepModeBtnText'),
 	autoScanToggleBtn: $('#autoScanToggleBtn'),
 	appShell: $('.app-shell'),
     pipToggleBtn: $('#pipToggleBtn'),
