@@ -678,10 +678,12 @@ window.CLS = window.CLS || {};
           detail: JSON.stringify({
             showUnit: state.showUnit,
             showAbbr: state.showAbbr,
+            compactUrine: Boolean(state.compactUrine),
+            autoSweepTab: Boolean(state.autoSweepTab), // <-- Thêm dòng này
             copyFormat: state.copyFormat,
             themeMode: state.themeMode,
             darkMode: isDark,
-			mergeEnabled: Boolean(state.mergeEnabled),
+            mergeEnabled: Boolean(state.mergeEnabled),
             mergeFilter: state.mergeFilter || 'main'
           })
         })
@@ -707,6 +709,15 @@ window.CLS = window.CLS || {};
         needSummary = true;
         needTable = true;
       }
+      if (typeof s.compactUrine === 'boolean' && s.compactUrine !== state.compactUrine) {
+        state.compactUrine = s.compactUrine;
+        localStorage.setItem(STORAGE.COMPACT_URINE, state.compactUrine);
+        needSummary = true;
+      }
+      if (typeof s.autoSweepTab === 'boolean' && s.autoSweepTab !== state.autoSweepTab) { // <-- Khối thêm mới
+        state.autoSweepTab = s.autoSweepTab;
+        localStorage.setItem(STORAGE.AUTO_SWEEP_TAB, state.autoSweepTab);
+      }
       if (s.copyFormat && s.copyFormat !== state.copyFormat) {
         state.copyFormat = s.copyFormat;
         localStorage.setItem(STORAGE.COPY_FORMAT, state.copyFormat);
@@ -715,7 +726,7 @@ window.CLS = window.CLS || {};
       if (s.themeMode && s.themeMode !== state.themeMode && window.CLS.setThemeMode) {
         window.CLS.setThemeMode(s.themeMode);
       }
-	  if (typeof s.mergeEnabled === 'boolean' && s.mergeEnabled !== state.mergeEnabled) {
+      if (typeof s.mergeEnabled === 'boolean' && s.mergeEnabled !== state.mergeEnabled) {
         state.mergeEnabled = s.mergeEnabled;
         localStorage.setItem(WEB_MERGE_ON_KEY, state.mergeEnabled);
         needSummary = true;
@@ -768,6 +779,15 @@ window.CLS = window.CLS || {};
         const plain = getSummaryPlainText();
         if (plain) copyToClipboard(plain);
         showToast(state.compactUrine ? 'Đã bật rút gọn TPTNT' : 'Hiển thị đầy đủ TPTNT');
+      });
+    }
+    if (el.sweepModeToggleBtn) {
+      el.sweepModeToggleBtn.addEventListener('click', () => {
+        state.autoSweepTab = !state.autoSweepTab;
+        localStorage.setItem(STORAGE.AUTO_SWEEP_TAB, state.autoSweepTab);
+        updateUI();
+        pushSettingsToExtension();
+        showToast(state.autoSweepTab ? 'Chế độ: Tự quét cả tab XN/CĐHA' : 'Chế độ: Chỉ quét khi ấn từng nhóm');
       });
     }
     el.autoToggleBtn.addEventListener('click', () => {

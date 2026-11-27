@@ -28,6 +28,15 @@ window.CLS = window.CLS || {};
         ? 'Đang bật Tự động quét HIS (nhấn để tắt)'
         : 'Tắt Tự động quét HIS (nhấn để bật)';
     }
+	if (el.sweepModeToggleBtn) {
+      el.sweepModeToggleBtn.classList.toggle('active', state.autoSweepTab);
+      if (el.sweepModeBtnText) {
+        el.sweepModeBtnText.textContent = state.autoSweepTab ? 'Cả tab' : 'Từng nhóm';
+      }
+      el.sweepModeToggleBtn.title = state.autoSweepTab
+        ? 'Đang bật: Tự quét cả tab khi ấn Lịch sử XN/CĐHA (nhấn để chỉ quét từng nhóm)'
+        : 'Đang tắt: Chỉ quét khi ấn từng nhóm XN/CĐHA (nhấn để tự quét cả tab)';
+    }
     el.formatLabel.textContent = FORMAT_LABELS[state.copyFormat] || ',';
     el.formatItems.forEach(i => {
       const active = i.dataset.value === state.copyFormat;
