@@ -1254,7 +1254,7 @@ window.CLS = window.CLS || {};
     }
 	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
-      let latestVersion = '2.0.1'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
+      let latestVersion = '2.0.2'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
       const EXT_ZIP_FILE = 'cls-auto.zip';
 
       const extBanner = document.getElementById('extBanner');
@@ -1350,7 +1350,7 @@ window.CLS = window.CLS || {};
           }
           if (infoSpan) {
             const verText = currentVer ? `v${currentVer}` : 'bản cũ';
-            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${latestVersion}:</strong> Máy đang dùng ${verText}. Nháy đúp <code>CapNhat_CLS.bat</code> trong thư mục <code>cls-auto</code> rồi bấm Tải lại (hoặc tải <code>.zip</code> nếu chưa có file này).`;
+            infoSpan.innerHTML = `<strong>Có bản cập nhật Extension v${latestVersion}:</strong> Máy đang dùng ${verText}. Nháy đúp <code>Update.bat</code> trong thư mục <code>cls-auto</code> rồi bấm Tải lại (hoặc tải <code>.zip</code> nếu chưa có file này).`;
           }
           if (btnOpenExtModal) {
             btnOpenExtModal.innerHTML = '<i class="fas fa-arrow-up"></i> Tải .zip';
