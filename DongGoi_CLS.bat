@@ -18,6 +18,15 @@ $popupHtml = Join-Path $extDir  'popup.html'
 $mainJs    = Join-Path $rootDir 'js\main.js'
 $zipFile   = Join-Path $rootDir 'cls-auto.zip'
 
+function Get-SafeTempDir {
+  try {
+    $fso = New-Object -ComObject Scripting.FileSystemObject
+    return $fso.GetFolder($env:TEMP).Path
+  } catch {
+    return [System.IO.Path]::GetTempPath().TrimEnd('\')
+  }
+}
+
 if (-not (Test-Path -LiteralPath $manifest)) {
   Write-Host "[LOI] Khong tim thay: $manifest" -ForegroundColor Red
   Write-Host 'Hay dat DongGoi_CLS.bat o thu muc goc chua thu muc cls-auto!'
@@ -49,7 +58,7 @@ while ($true) {
   $newVer = if ([string]::IsNullOrWhiteSpace($inputVer)) { $suggestVer } else { $inputVer.Trim() }
 
   if ($newVer -notmatch '^\d+\.\d+\.\d+$') {
-    Write-Host '[LOI] Dinh dang phien ban phai la X.Y.Z (vi du: 2.0.1). Vui long nhap lai.' -ForegroundColor Yellow
+    Write-Host '[LOI] Dinh dang phien ban phai la X.Y.Z (vi du: 2.0.7). Vui long nhap lai.' -ForegroundColor Yellow
     continue
   }
   if ([version]$newVer -lt [version]$curVer) {
@@ -58,6 +67,8 @@ while ($true) {
   }
   break
 }
+
+$tmpZip = Join-Path $rootDir ('.cls-auto_build_' + (Get-Random) + '.zip')
 
 try {
   Write-Host ''
@@ -85,11 +96,13 @@ try {
 
   Write-Host ''
   Write-Host '[2/3] Sao luu ban cu va dong goi cls-auto.zip...'
-  $tmpZip = Join-Path $env:TEMP ("cls-auto_build_" + (Get-Random) + ".zip")
-  $bakZip = Join-Path $env:TEMP 'cls-auto_backup_prev.zip'
+  $safeTemp = Get-SafeTempDir
+  $bakZip = Join-Path $safeTemp 'cls-auto_backup_prev.zip'
 
-  if (Test-Path -LiteralPath $tmpZip) { Remove-Item -LiteralPath $tmpZip -Force }
-  if (Test-Path -LiteralPath $zipFile) { Copy-Item -LiteralPath $zipFile -Destination $bakZip -Force }
+  if ([System.IO.File]::Exists($tmpZip)) { [System.IO.File]::Delete($tmpZip) }
+  if ([System.IO.File]::Exists($zipFile)) {
+    try { [System.IO.File]::Copy($zipFile, $bakZip, $true) } catch {}
+  }
 
   $items = @(Get-ChildItem -LiteralPath $extDir -Force | Where-Object {
     $_.Name -notin @('.DS_Store', 'Thumbs.db') -and $_.Extension -notin @('.bak', '.tmp', '.zip')
@@ -97,7 +110,8 @@ try {
   if ($items.Count -eq 0) { throw 'Thu muc cls-auto dang trong!' }
 
   Compress-Archive -LiteralPath @($items | ForEach-Object { $_.FullName }) -DestinationPath $tmpZip -CompressionLevel Optimal -Force
-  Move-Item -LiteralPath $tmpZip -Destination $zipFile -Force
+  if ([System.IO.File]::Exists($zipFile)) { [System.IO.File]::Delete($zipFile) }
+  [System.IO.File]::Move($tmpZip, $zipFile)
 
   $kb = [math]::Round((Get-Item -LiteralPath $zipFile).Length / 1KB, 1)
   Write-Host "  + Dong goi thanh cong: cls-auto.zip ($kb KB)" -ForegroundColor Green
@@ -128,9 +142,11 @@ try {
   Write-Host "  File xuat: $zipFile"
   Write-Host '========================================================'
 } catch {
-  if ($tmpZip -and (Test-Path -LiteralPath $tmpZip)) {
-    Remove-Item -LiteralPath $tmpZip -Force -ErrorAction SilentlyContinue
-  }
+  try {
+    if ($tmpZip -and [System.IO.File]::Exists($tmpZip)) {
+      [System.IO.File]::Delete($tmpZip)
+    }
+  } catch {}
   Write-Host "[LOI] $($_.Exception.Message)" -ForegroundColor Red
   exit 1
 }
