@@ -289,7 +289,7 @@ window.CLS = window.CLS || {};
 	 }
 
     function updateStats() {
-      if (!state.mergeEnabled) return origUpdateStats();
+      if (!state.mergeEnabled || !S) return origUpdateStats();
       const res = buildWebMergedResult();
       if (totalIndEl) totalIndEl.textContent = res.total;
       if (abnIndEl) abnIndEl.textContent = res.abn;
@@ -297,7 +297,7 @@ window.CLS = window.CLS || {};
     }
 
     function getSummaryPlainText() {
-      if (!state.mergeEnabled) return origGetSummaryPlainText();
+      if (!state.mergeEnabled || !S) return origGetSummaryPlainText();
       return buildWebMergedResult().plain;
     }
 
@@ -1283,7 +1283,7 @@ window.CLS = window.CLS || {};
     }
 	/* ---------- Gợi ý cài đặt & Tự kiểm tra phiên bản Extension ---------- */
     (function initExtensionPrompt() {
-      let latestVersion = '2.0.7'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
+      let latestVersion = '2.0.8'; // Bản dự phòng nếu repo không đẩy kèm thư mục cls-auto/
       const EXT_ZIP_FILE = 'cls-auto.zip';
 
       const extBanner = document.getElementById('extBanner');
